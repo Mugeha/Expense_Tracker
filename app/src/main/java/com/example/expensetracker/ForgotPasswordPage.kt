@@ -2,6 +2,7 @@ package com.example.expensetracker
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -69,7 +70,7 @@ fun ForgotPasswordPage(navController: NavController) {
                     fontWeight = FontWeight.Bold
                 ),
                 modifier = Modifier
-                    .padding(top = 4.dp, bottom = 20.dp) // Adjust top padding to align with the image
+                    .padding(top = 4.dp, bottom = 16.dp) // Adjust top padding to align with the image
             )
             Spacer(modifier = Modifier.width(10.dp))
 //            Image(
@@ -109,7 +110,8 @@ fun ForgotPasswordPage(navController: NavController) {
 
                 ),
             modifier = Modifier
-                .align(Alignment.End)// Adjust top padding to align with the image
+                .align(Alignment.End)
+                .clickable{ navController.navigate("enter-phone-number")}
         )
         Column(
             verticalArrangement = Arrangement.Center,
@@ -118,15 +120,15 @@ fun ForgotPasswordPage(navController: NavController) {
                 .padding(top = 40.dp)
 
         ){
-            FilledButton(title = "Send Reset Link")
-            Spacer(modifier = Modifier.height(10.dp)) // Add a small spacer for minimal space
+            FilledButton(title = "Send Reset Link", destination="reset-pwd", navController = navController)
+            Spacer(modifier = Modifier.height(16.dp)) // Add a small spacer for minimal space
 
             // Login Prompt
 
         }
         Text(
             text = "Back to Login",
-
+modifier = Modifier.clickable{navController.navigate("login-screen")},
             color = colorResource(id = R.color.ForgotPasswordColor),
         )
     }
@@ -223,7 +225,7 @@ fun ResetPassword(navController: NavController) {
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ){
-            FilledButton(title = "Reset Password")
+            FilledButton(title = "Reset Password", destination = "login-screen", navController = navController)
         }
     }
 }
@@ -299,7 +301,7 @@ fun OTPResetPage(navController: NavController) {
                 .padding(top = 40.dp)
 
         ){
-            FilledButton(title = "Send me the code")
+            FilledButton(title = "Send me the code", destination = "confirm-number", navController = navController)
             Spacer(modifier = Modifier.height(10.dp)) // Add a small spacer for minimal space
 
             // Login Prompt

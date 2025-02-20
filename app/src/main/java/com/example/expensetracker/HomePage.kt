@@ -56,7 +56,7 @@ fun HomeScreen(navController: NavController) {
                 )
                 Text(
                     text = "Welcome, \nMugeha Jackline",
-                    fontSize = 16.sp,
+                    style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Normal
                 )
             }
@@ -150,7 +150,7 @@ fun HomeScreen(navController: NavController) {
 
             Spacer(modifier = Modifier.height(5.dp))
 
-           DashboardScreen()
+           DashboardScreen(navController = navController)
 
             Spacer(modifier = Modifier.height(20.dp))
 
@@ -187,6 +187,8 @@ fun HomeScreenPreview() {
 fun DashboardButton(
     imageResource: Int,
     text: String,
+    navController: NavController, // Add navController parameter
+    destination: String, // Add destination route parameter
     backgroundColor: Color,
     onClick: () -> Unit
 ) {
@@ -233,7 +235,7 @@ fun DashboardButton(
 
 
 @Composable
-fun DashboardScreen() {
+fun DashboardScreen(navController: NavController) {
     Row(
         modifier = Modifier
 //            .fillMaxSize()
@@ -244,18 +246,24 @@ fun DashboardScreen() {
         DashboardButton(
             imageResource = R.drawable.money, // Replace with your income icon
             text = "Add \nIncome",
+            navController = navController, // Pass navController
+            destination = "add-income-screen", // Replace with your income screen route
             backgroundColor = colorResource(id = R.color.HomeColor), // Example: Green color
-            onClick = { /* Handle income click */ }
+            onClick = {  }
         )
         DashboardButton(
             imageResource = R.drawable.money__1_, // Replace with your expenses icon
             text = "Add \nExpenses",
+            navController = navController, // Pass navController
+            destination = "add-expense-screen", // Replace with your income screen route
             backgroundColor = colorResource(id = R.color.HomeColor), // Example: Red color
             onClick = { /* Handle expenses click */ }
         )
         DashboardButton(
             imageResource = R.drawable.bar_chart, // Replace with your analytics icon
             text = "See \nAnalytics",
+            navController = navController, // Pass navController
+            destination = "see-analytics-screen", // Replace with your income screen route
             backgroundColor = colorResource(id = R.color.HomeColor),// Example: Blue color
             onClick = { /* Handle analytics click */ }
         )
@@ -265,13 +273,9 @@ fun DashboardScreen() {
 @Preview(showBackground = true)
 @Composable
 fun DashboardPreview() {
-    DashboardScreen()
+    DashboardScreen(navController = NavController(LocalContext.current))
 }
-@Preview(showBackground = true)
-@Composable
-fun TransactionListPreview() {
-    TransactionList()
-}
+
 
 @Composable
 fun TransactionItem(title: String, subtitle: String, amount: String, isIncome: Boolean) {

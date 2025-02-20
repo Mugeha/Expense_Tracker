@@ -65,7 +65,7 @@ fun ExpensesScreen(navController: NavController) {
             }
             Text(
                 text = "Expenses",
-                fontSize = 20.sp,
+                fontSize = 22.sp,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center, // Center the text horizontally
                 modifier = Modifier.fillMaxWidth() // Ensure the text takes full width

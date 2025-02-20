@@ -1,5 +1,6 @@
 package com.example.expensetracker
 
+import ProfileScreen
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -32,6 +33,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme.typography
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -66,6 +68,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 //import androidx.lint.kotlin.metadata.Visibility
 import com.example.expensetracker.ui.theme.ExpenseTrackerTheme
@@ -76,18 +80,47 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             ExpenseTrackerTheme {
+                val navController = rememberNavController() // Create NavController
+                NavHost(
+                    navController = navController,
+                    startDestination = "splash-screen"
+                ) {
+                    composable("splash-screen") {
+                        BackgroundImage(navController)
+                    }
+                    composable("signup-screen") {
+                        SignupScreen(navController)
+                    }
+                    composable("login-screen") {
+                        LoginScreen(navController)
+                    }
+                    composable("addphoto-screen") {
+                        AddPhoto(navController)
+                    }
+                    composable("forgot-pwd")
+                    {
+                        ForgotPasswordPage(navController)
+                    }
+                    composable("enter-phone-number"){
+                        OTPResetPage(navController)
+                    }
+
+                    composable("home-screen") {
+                        HomeScreen(navController)
+                    }
+                    composable("transaction-history") {
+                        TransactionHistoryScreen(navController)
+                    }
+                    composable("expenses-screen") {
+                        ExpensesScreen(navController)
+                    }
+                }
             }
         }
+
     }
 }
 
-@Preview(showBackground = true)
-@Composable
-fun FilledButtonPreview() {
-    ExpenseTrackerTheme {
-        FilledButton(title = "Get Started")
-    }
-}
 
 @Preview(showBackground = true)
 @Composable
@@ -109,7 +142,7 @@ fun WhiteButtonWithStrokePreview() {
 @Composable
 fun HomePagePreview() {
     ExpenseTrackerTheme {
-        BackgroundImage()
+        BackgroundImage(navController = rememberNavController())
     }
 }
 
@@ -200,7 +233,7 @@ fun WhiteButton(onClick: () -> Unit = {}, title: String) {
 }
 
 @Composable
-fun BackgroundImage() {
+fun BackgroundImage(navController: NavController) {
     val image = painterResource(R.drawable.background_image)
 
 
@@ -224,10 +257,10 @@ fun BackgroundImage() {
             .fillMaxHeight()
 //            .padding(top = 28.dp)
             .background(colorResource(id = R.color.HomeColor))
-//            .padding(top = 40.dp)
+            .padding(top = 40.dp)
             .padding(end = 20.dp)
             .padding(start = 20.dp), // Adds padding inside the column// Adds padding inside the column
-        verticalArrangement = Arrangement.Center // Centers content vertically
+        verticalArrangement = Arrangement.Top // Centers content vertically
     ) {
         // Title
         Text(
@@ -249,15 +282,17 @@ fun BackgroundImage() {
             modifier = Modifier.padding(start = 20.dp)
         )
 
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(26.dp))
 
         Column(
-            verticalArrangement = Arrangement.Center,
+            modifier = Modifier.fillMaxSize(), // Ensures the Column takes up the full screen
+            verticalArrangement = Arrangement.Top,
             horizontalAlignment = Alignment.CenterHorizontally
         ){
-            FilledButton(title = "Get Started")
+            FilledButton(title = "Get Started", destination = "signup-screen", navController = navController)
             // Login Prompt
-            TextForSigningUpOrLoginIn()
+            Spacer(modifier = Modifier.height(16.dp))
+            TextForSigningUpOrLoginIn(navController = navController)
         }
 
     }
@@ -265,9 +300,17 @@ fun BackgroundImage() {
 }
 
 @Composable
-fun FilledButton(onClick: () -> Unit = {}, title: String) { // Provide a default empty lambda
+fun FilledButton( navController: NavController,
+                  onClick: () -> Unit = {},
+                  title: String,
+                  destination: String
+)
+{
     Button(
-        onClick = { onClick() },
+onClick = {
+    onClick() // Call any additional onClick logic
+    navController.navigate(destination) // Navigate to the specified destination
+},
         colors = ButtonDefaults.buttonColors(
             containerColor = Color(0xFF336B40), // Custom green button color
             contentColor = Color.White // White text color
@@ -275,8 +318,8 @@ fun FilledButton(onClick: () -> Unit = {}, title: String) { // Provide a default
         shape = RoundedCornerShape(70.dp), // Optional: rounded corners
         modifier = Modifier
 //            .padding(16.dp)
-            .height(70.dp)
-            .width(342.dp)
+            .height(65.dp)
+            .width(332.dp)
     ) {
         Text(
             text = title,
@@ -288,17 +331,19 @@ fun FilledButton(onClick: () -> Unit = {}, title: String) { // Provide a default
 }
 
 
-@Preview (showBackground = true)
+@Preview(showBackground = true)
 @Composable
 fun TextForSigningUpOrLoginInPreview() {
     ExpenseTrackerTheme {
-        TextForSigningUpOrLoginIn()
+        val navController = rememberNavController() // Create a dummy NavController for preview
+        TextForSigningUpOrLoginIn(navController = navController)
     }
 }
 
 
+
 @Composable
-fun TextForSigningUpOrLoginIn(){
+fun TextForSigningUpOrLoginIn(navController: NavController){
     Box(
         contentAlignment = Alignment.Center// Centers the content both horizontally and vertically
     ) {
@@ -316,7 +361,10 @@ fun TextForSigningUpOrLoginIn(){
                 text = "Login",
                 fontSize = 14.sp,
                 color = colorResource(id = R.color.LoginColor), // Replace 'your_color_name' with the name of your color in colors.xml
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.clickable {
+                    navController.navigate("login-screen") // Navigate to login screen
+                }
             )
         }
     }
@@ -343,9 +391,14 @@ fun SignupScreen(navController: NavController) {
             .fillMaxSize()
             .background(colorResource(id = R.color.HomeColor))
 //            .padding(top = 100.dp)
-            .padding(30.dp),
+            .padding(
+                start = 30.dp, // Left padding
+                end = 30.dp,   // Right padding
+                top = 100.dp,  // Top padding
+                bottom = 50.dp // Bottom padding
+            ),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+        verticalArrangement = Arrangement.Top
     ) {
         Text(
             text = "Sign Up",
@@ -399,9 +452,10 @@ fun SignupScreen(navController: NavController) {
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ){
-            FilledButton(title = "Continue")
+            FilledButton(title = "Continue", destination = "addphoto-screen", navController = navController)
             // Login Prompt
-            TextForSigningUpOrLoginIn()
+            Spacer(modifier = Modifier.height(16.dp))
+            TextForSigningUpOrLoginIn(navController = navController)
         }
     }
 }
@@ -432,31 +486,38 @@ fun LoginScreen(navController: NavController) {
             .fillMaxSize()
             .background(colorResource(id = R.color.HomeColor))
 //            .padding(top = 100.dp)
-            .padding(30.dp),
+            .padding(
+                start = 30.dp, // Left padding
+                end = 30.dp,   // Right padding
+                top = 100.dp,  // Top padding
+                bottom = 50.dp // Bottom padding
+            ),
         horizontalAlignment = Alignment.CenterHorizontally,
-       verticalArrangement = Arrangement.Center
+       verticalArrangement = Arrangement.Top
     ) {
         Row(
             horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically // Center the row's content vertically
+            verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(bottom = 16.dp)
         ) {
             Text(
-                text = "Welcome Back!",
+                text = "Welcome Back !",
                 style = TextStyle(
                     color = Color.White,
                     fontSize = 34.sp,
                     fontWeight = FontWeight.Bold
                 ),
                 modifier = Modifier
-                    .padding(top = 4.dp) // Adjust top padding to align with the image
+                    .padding(top = 4.dp) // Removed bottom padding to align with the image
             )
-Spacer(modifier = Modifier.width(6.dp))
+            Spacer(modifier = Modifier.height(8.dp))
             Image(
                 painter = image,
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
-                    .size(34.dp)
+                    .size(34.dp) // Matches the font size of the text
+                    .padding(bottom = 4.dp) // Adjusted bottom padding to align with the text
             )
         }
 //
@@ -500,6 +561,9 @@ Spacer(modifier = Modifier.width(6.dp))
                 ),
             modifier = Modifier
                 .align(Alignment.End)// Adjust top padding to align with the image
+               .clickable {
+                navController.navigate("forgot-pwd") // Navigate to login screen
+            }
         )
         Column(
           verticalArrangement = Arrangement.Center,
@@ -508,17 +572,43 @@ Spacer(modifier = Modifier.width(6.dp))
              .padding(top = 40.dp)
 
         ){
-            FilledButton(title = "Log in")
+            FilledButton(title = "Log in", destination ="home-screen", navController = navController)
          Spacer(modifier = Modifier.height(10.dp)) // Add a small spacer for minimal space
             WhiteButton(title = "Log in with Google")
             // Login Prompt
 
         }
-        TextForSigningUpOrLoginIn()
+        Spacer(modifier = Modifier.height(16.dp))
+        TextForSignup(navController = navController)
     }
 }
 
-
+@Composable
+fun TextForSignup(navController: NavController)  {Box(
+contentAlignment = Alignment.Center// Centers the content both horizontally and vertically
+) {
+    Row(
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = "Don't have an account?",
+            fontSize = 14.sp,
+            color = Color.White
+        )
+        Spacer(modifier = Modifier.width(4.dp))
+        Text(
+            text = "Signup",
+            fontSize = 14.sp,
+            color = colorResource(id = R.color.LoginColor), // Replace 'your_color_name' with the name of your color in colors.xml
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.clickable {
+                navController.navigate("signup-screen") // Navigate to login screen
+            }
+        )
+    }
+}
+}
 
 
 // Custom reusable text field with an underline only
@@ -664,7 +754,9 @@ fun AddPhoto(navController: NavController) {
             // Button to Open Bottom Sheet
             FilledButton(
                 onClick = { showBottomSheet = true },
-                title = "Choose a Photo"
+                title = "Choose a Photo",
+                destination = "addphoto-screen",
+                navController = navController
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -702,6 +794,8 @@ fun AddPhoto(navController: NavController) {
         }
     }
 }
+
+
 
 
 
