@@ -11,6 +11,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 //import androidx.compose.foundation.layout.BoxScopeInstance.align
@@ -67,6 +68,8 @@ import androidx.compose.ui.tooling.preview.Preview
 //import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -78,48 +81,104 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        setContent {
-            ExpenseTrackerTheme {
-                val navController = rememberNavController() // Create NavController
-                NavHost(
-                    navController = navController,
-                    startDestination = "splash-screen"
-                ) {
-                    composable("splash-screen") {
-                        BackgroundImage(navController)
-                    }
-                    composable("signup-screen") {
-                        SignupScreen(navController)
-                    }
-                    composable("login-screen") {
-                        LoginScreen(navController)
-                    }
-                    composable("addphoto-screen") {
-                        AddPhoto(navController)
-                    }
-                    composable("forgot-pwd")
-                    {
-                        ForgotPasswordPage(navController)
-                    }
-                    composable("enter-phone-number"){
-                        OTPResetPage(navController)
-                    }
 
-                    composable("home-screen") {
-                        HomeScreen(navController)
-                    }
-                    composable("transaction-history") {
-                        TransactionHistoryScreen(navController)
-                    }
-                    composable("expenses-screen") {
-                        ExpensesScreen(navController)
-                    }
+        WindowCompat.setDecorFitsSystemWindows(window, false) // Allows full edge-to-edge content
+        setContent {
+            val darkTheme = isSystemInDarkTheme() // Check system theme
+            ExpenseTrackerTheme(darkTheme = false) {
+               Surface(
+                   modifier = Modifier.fillMaxSize(),
+                   color = MaterialTheme.colorScheme.background
+               ){
+
+                   // Adjust status bar based on theme
+                   window.statusBarColor = if (darkTheme) android.graphics.Color.BLACK else android.graphics.Color.WHITE
+                   WindowInsetsControllerCompat(window, window.decorView).isAppearanceLightStatusBars = !darkTheme
+                   MyAppNavigation()
                 }
             }
         }
 
     }
 }
+
+
+@Composable
+fun MyAppNavigation() {
+    val navController = rememberNavController()
+
+    NavHost(navController = navController, startDestination = "splash-screen") {
+        composable("splash-screen") {
+            BackgroundImage(navController)
+        }
+        composable("signup-screen") {
+            SignupScreen(navController)
+        }
+        composable("login-screen") {
+            LoginScreen(navController)
+        }
+        composable("addphoto-screen") {
+            AddPhoto(navController)
+        }
+        composable("forgot-pwd")
+        {
+            ForgotPasswordPage(navController)
+        }
+        composable("account-page"){
+            ProfileScreen(navController)
+        }
+        composable("reset-pwd")
+        {
+            ResetPassword(navController)
+        }
+        composable("enter-code")
+        {
+            ConfirmNumber(navController)
+        }
+        composable("enter-phone-number") {
+            OTPResetPage(navController)
+        }
+
+        composable("home-screen") {
+            HomeScreen(navController)
+        }
+        composable("add-expense-screen") {
+            AddExpenseScreen(navController)
+        }
+        composable("add-income-screen"){
+            AddIncomeScreen(navController)
+        }
+
+        composable("transaction-history") {
+            TransactionHistoryScreen(navController)
+        }
+        composable("expenses-screen") {
+            ExpensesScreen(navController)
+        }
+        composable("analytics-screen"){
+            AnalyticsScreen(navController)
+        }
+
+        composable("edit-expense-screen/{expenseId}") { backStackEntry ->
+            val expenseId = backStackEntry.arguments?.getString("expenseId")
+            val expense = getExpenseById(expenseId) // Fetch expense based on ID
+            if (expense != null) {
+                EditExpenseScreen(navController, expense)
+            }
+        }
+        composable("my-account-page")
+        {
+            ProfileScreen(navController)
+        }
+        composable("change-details-screen"){
+            ChangeDetailsScreen(navController)
+        }
+        composable("change-password-details"){
+            ChangePasswordScreen(navController)
+        }
+    }
+}
+
 
 
 @Preview(showBackground = true)
@@ -182,13 +241,13 @@ fun WhiteButtonWithStroke(onClick: () -> Unit = {}, title: String) {
         shape = RoundedCornerShape(70.dp), // Rounded corners
         modifier = Modifier
             .padding(16.dp)
-            .height(70.dp)
-            .width(342.dp)
+            .height(65.dp)
+            .width(332.dp)
             .border(1.dp, Color.LightGray, RoundedCornerShape(70.dp)) // Add a light grey border
     ) {
             Text(
                 text = title,
-                color = Color.LightGray, // Explicitly set text color
+                color = Color.DarkGray, // Explicitly set text color
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -684,29 +743,55 @@ fun CustomUnderlineTextField(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddPhoto(navController: NavController) {
-    var showBottomSheet by remember { mutableStateOf(false) }
     val bottomSheetState = rememberModalBottomSheetState()
+    var showBottomSheet by remember { mutableStateOf(false) }
 
     val image = painterResource(R.drawable.back_button)
     val photographImage = painterResource(R.drawable.photograph_image)
     val humanProfile = painterResource(R.drawable.human_profile)
 
-    Scaffold { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
+    // Bottom Sheet
+    if (showBottomSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showBottomSheet = false },
+            sheetState = bottomSheetState
         ) {
-            // Back Button
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                WhiteButtonWithDarkText(
+                    onClick = {
+                        showBottomSheet = false
+                        // Handle Take Photo action
+                    },
+                    title = "Take Photo"
+                )
+                Divider()
+                WhiteButtonWithDarkText(
+                    onClick = {
+                        showBottomSheet = false
+                        // Handle Gallery Selection action
+                    },
+                    title = "Add from Gallery"
+                )
+            }
+        }
+    }
+
+    // Main Screen Content
+    Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
+        topBar = {
             IconButton(
                 onClick = { navController.popBackStack() },
-                modifier = Modifier
-                    .align(Alignment.Start)
-                    .padding(start = 16.dp)
-                    .padding(top = 16.dp)
+                modifier = Modifier.padding(top = 46.dp, start = 16.dp),
+//                colors = topAppBarColors(
+//                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+//                    titleContentColor = MaterialTheme.colorScheme.primary,
+//                ),
             ) {
                 Icon(
                     painter = image,
@@ -714,10 +799,18 @@ fun AddPhoto(navController: NavController) {
                     tint = Color.Black
                 )
             }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // "Add a photo" with camera icon
+        }
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding),
+//            .background(color = Color.White),
+//                .padding(16.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            // Title with Camera Icon
             Row(
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
@@ -726,7 +819,7 @@ fun AddPhoto(navController: NavController) {
                     text = "Add a photo",
                     style = TextStyle(
                         color = Color.Black,
-                        fontSize = 22.sp,
+                        fontSize = 34.sp,
                         fontWeight = FontWeight.Bold
                     )
                 )
@@ -745,7 +838,7 @@ fun AddPhoto(navController: NavController) {
                 painter = humanProfile,
                 contentDescription = "Profile Picture",
                 modifier = Modifier
-                    .size(120.dp)
+                    .size(140.dp)
                     .clip(CircleShape)
             )
 
@@ -759,41 +852,17 @@ fun AddPhoto(navController: NavController) {
                 navController = navController
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+//            Spacer(modifier = Modifier.height(16.dp))
 
             // Maybe Later Button
             WhiteButtonWithStroke(
-                onClick = { navController.popBackStack() },
+                onClick = { navController.navigate("home-screen") },
                 title = "Maybe Later"
             )
         }
     }
-
-    // Bottom Sheet for Photo Options
-    if (showBottomSheet) {
-        ModalBottomSheet(
-            onDismissRequest = { showBottomSheet = false },
-            sheetState = bottomSheetState
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                WhiteButtonWithDarkText(
-                    onClick = { /* Handle Take Photo */ },
-                    title = "Take Photo"
-                )
-                Divider()
-                WhiteButtonWithDarkText(
-                    onClick = { /* Handle Gallery Selection */ },
-                    title = "Add from Gallery"
-                )
-            }
-        }
-    }
 }
+
 
 
 

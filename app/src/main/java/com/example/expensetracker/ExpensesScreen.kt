@@ -26,6 +26,14 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.expensetracker.R
 
+fun getExpenseById(expenseId: String?): Expense? {
+    val expensesList = listOf(
+        Expense("1", "15", "Food", "Lunch at Cafe", "23/02/2025", "Card"),
+        Expense("2", "50", "Transport", "Bus fare", "24/02/2025", "Cash")
+    )
+    return expensesList.find { it.id == expenseId }
+}
+
 @Composable
 fun ExpensesScreen(navController: NavController) {
     val filters = listOf("This week", "This month", "This year")
@@ -50,7 +58,7 @@ fun ExpensesScreen(navController: NavController) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(top = 32.dp, start = 16.dp, end = 16.dp)
+            .padding(top = 42.dp, start = 16.dp, end = 16.dp)
     ) {
         // Top App Bar
         Row(
@@ -65,10 +73,10 @@ fun ExpensesScreen(navController: NavController) {
             }
             Text(
                 text = "Expenses",
-                fontSize = 22.sp,
+                fontSize = 30.sp,
                 fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center, // Center the text horizontally
-                modifier = Modifier.fillMaxWidth() // Ensure the text takes full width
+                textAlign = TextAlign.Start, // Center the text horizontally
+                modifier = Modifier.fillMaxWidth().padding(start = 60.dp) // Ensure the text takes full width
             )
         }
 
@@ -106,10 +114,10 @@ fun ExpensesScreen(navController: NavController) {
                         painter = painterResource(id = R.drawable.pie_chart),
                         contentDescription = "Pie Chart",
                         modifier = Modifier
-                            .size(100.dp) // Adjust size as needed
+                            .size(150.dp) // Adjust size as needed
                     )
 
-                    Spacer(modifier = Modifier.width(78.dp)) // Space between image and labels
+                    Spacer(modifier = Modifier.width(58.dp)) // Space between image and labels
 
                     // Column for Labels
                     Column(
@@ -140,7 +148,7 @@ fun ExpensesScreen(navController: NavController) {
                                 modifier = Modifier
                                     .size(12.dp)
                                     .background(
-                                        Color(0xFF2196F3),
+                                        Color(0xFF5a8299),
                                         shape = CircleShape
                                     ) // Blue for Electricity
                             )
@@ -209,22 +217,22 @@ fun ExpensesScreen(navController: NavController) {
             Spacer(modifier = Modifier.height(26.dp))
 
             // Expenses List
-            LazyColumn {
-                item {
-                    Text("Today", fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                }
-                items(todayExpenses) { expense ->
-                    ExpenseRow(expense)
-                }
-
-                item {
-                    Spacer(modifier = Modifier.height(20.dp))
-                    Text("Yesterday", fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                }
-                items(yesterdayExpenses) { expense ->
-                    ExpenseRow(expense)
-                }
+        LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) { // Adjust 8.dp to your desired spacing
+            item {
+                Text("Today", fontSize = 18.sp, fontWeight = FontWeight.Bold)
             }
+            items(todayExpenses) { expense ->
+                ExpenseRow(expense, navController = navController)
+            }
+
+            item {
+                Spacer(modifier = Modifier.height(20.dp))
+                Text("Yesterday", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            }
+            items(yesterdayExpenses) { expense ->
+                ExpenseRow(expense, navController = navController)
+            }
+        }
         }
     }
 
@@ -233,11 +241,15 @@ fun ExpensesScreen(navController: NavController) {
 
     // 🔹 Expense Row UI
     @Composable
-    fun ExpenseRow(expense: ExpenseItem) {
+    fun ExpenseRow(expense: ExpenseItem, navController: NavController) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 8.dp),
+                .background(
+                    color = Color.LightGray, // Light gray background
+                    shape = RoundedCornerShape(10.dp) // Rounded corners
+                )
+                .padding(vertical = 16.dp, horizontal = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Image(
@@ -249,7 +261,11 @@ fun ExpensesScreen(navController: NavController) {
             Text(expense.title, modifier = Modifier.weight(1f), fontSize = 16.sp)
             Spacer(modifier = Modifier.width(10.dp))
             Text(expense.amount, fontSize = 16.sp, color = Color.Red)
-            IconButton(onClick = { /* Edit expense */ }) {
+            IconButton(onClick = {
+                val expense = Expense("1", "15", "Food", "Lunch at Cafe", "23/02/2025", "Card")
+
+                navController.navigate("edit-expense/${expense.id}")
+            }) {
                 Image(
                     painter = painterResource(id = R.drawable.edit_image_2),
                     contentDescription = "Edit Image",

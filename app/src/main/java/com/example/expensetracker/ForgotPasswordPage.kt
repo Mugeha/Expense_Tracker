@@ -190,20 +190,6 @@ fun ResetPassword(navController: NavController) {
             horizontalAlignment = Alignment.CenterHorizontally
         ){
 
-
-            // Email Field
-            CustomUnderlineTextField(
-                value = email,
-                onValueChange = { email = it },
-                placeholder = "Email"
-            )
-            // Username Field
-            CustomUnderlineTextField(
-                value = otp,
-                onValueChange = { username = it },
-                placeholder = "Enter OTP"
-            )
-
             // Password Field
             CustomUnderlineTextField(
                 value = password,
@@ -232,8 +218,8 @@ fun ResetPassword(navController: NavController) {
 
 @Composable
 fun OTPResetPage(navController: NavController) {
-    var email by remember { mutableStateOf("") }
-    val phoneno by remember { mutableStateOf("") }
+    var phoneno by remember { mutableStateOf("") }
+    var confirmphoneno by remember { mutableStateOf("") }
 //    val image = painterResource(R.drawable.waving_hand)
 
     Column(
@@ -288,8 +274,13 @@ fun OTPResetPage(navController: NavController) {
             // Phone Number Field
             CustomUnderlineTextField(
                 value = phoneno,
-                onValueChange = { email = it },
+                onValueChange = { phoneno = it },
                 placeholder = "+254 7********"
+            )
+            CustomUnderlineTextField(
+                value = confirmphoneno,
+                onValueChange = { confirmphoneno = it },
+                placeholder = "Confirm Phone Number"
             )
 
         }
@@ -298,10 +289,10 @@ fun OTPResetPage(navController: NavController) {
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
-                .padding(top = 40.dp)
+                .padding(top = 20.dp)
 
         ){
-            FilledButton(title = "Send me the code", destination = "confirm-number", navController = navController)
+            FilledButton(title = "Send me the code", destination = "enter-code", navController = navController)
             Spacer(modifier = Modifier.height(10.dp)) // Add a small spacer for minimal space
 
             // Login Prompt
@@ -339,14 +330,14 @@ fun ConfirmNumber(navController: NavController) {
             verticalAlignment = Alignment.CenterVertically // Center the row's content vertically
         ) {
             Text(
-                text = "Confirm Phone Number",
+                text = "Enter Code",
                 style = TextStyle(
                     color = Color.White,
                     fontSize = 30.sp,
                     fontWeight = FontWeight.Bold
                 ),
                 modifier = Modifier
-                    .padding(top = 4.dp, bottom = 15.dp) // Adjust top padding to align with the image
+                    .padding(top = 4.dp, bottom = 16.dp) // Adjust top padding to align with the image
             )
 //            Spacer(modifier = Modifier.width(10.dp))
 //            Image(
@@ -379,10 +370,10 @@ fun ConfirmNumber(navController: NavController) {
             VerificationCodeInput()
 
             Spacer(modifier = Modifier.height(10.dp)) // Add a small spacer for minimal space
-            WhiteButtonConfirmNumber(title = "Confirm")
+            WhiteButtonConfirmNumber(title = "Confirm", destination = "reset-pwd", navController = navController)
             // Login Prompt
             Text(
-                text = "Send me the code",
+                text = "Send code again",
                 style = TextStyle(
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Medium,
@@ -403,7 +394,7 @@ fun OTPResetPagePreview() {
 }
 
 @Composable
-fun WhiteButtonConfirmNumber(onClick: () -> Unit = {}, title: String) {
+fun WhiteButtonConfirmNumber(onClick: () -> Unit = {}, title: String, navController: NavController, destination: String) {
     Button(
         onClick = { onClick() },
         colors = ButtonDefaults.buttonColors(
@@ -435,7 +426,8 @@ fun WhiteButtonConfirmNumber(onClick: () -> Unit = {}, title: String) {
 @Composable
 fun WhiteButtonConfirmNumberPreview() {
     ExpenseTrackerTheme {
-        WhiteButtonConfirmNumber(title = "Confirm")
+        val navController = rememberNavController() // Create a dummy NavController for preview
+        WhiteButtonConfirmNumber(title = "Confirm", navController = navController, destination = "reset-pwd")
     }
 }
 

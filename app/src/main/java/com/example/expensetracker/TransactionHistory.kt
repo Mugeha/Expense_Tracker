@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -45,7 +46,7 @@ fun TransactionHistoryScreen(navController: NavController) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(top = 28.dp, start = 16.dp, end = 16.dp)
+            .padding(top = 48.dp, start = 16.dp, end = 16.dp)
     ) {
         IconButton(onClick = { navController.popBackStack() }) {
             Icon(
@@ -81,7 +82,10 @@ fun TransactionItemView(transaction: TransactionItem) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Color(0xFFF5F5F5))
+            .background(
+                color = Color.LightGray, // Light gray background
+                shape = RoundedCornerShape(10.dp) // Rounded corners
+            )
             .padding(12.dp)
     ) {
         Image(

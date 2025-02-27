@@ -6,6 +6,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -29,18 +30,39 @@ import androidx.navigation.NavController
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(navController: NavController) {
+    var expanded by remember { mutableStateOf(false) }
     var balanceVisible by remember { mutableStateOf(false) }
     var selectedPeriod by remember { mutableStateOf("This Week") }
     val image = painterResource(id = R.drawable.human_profile)
 
+
+// State to track scroll offset
+    val scrollState = rememberScrollState()
+    var bottomBarVisible by remember { mutableStateOf(true) }
+
+    // Logic to hide/show bottom bar based on scroll direction
+    LaunchedEffect(scrollState.value) {
+        if (scrollState.value > 0) {
+            bottomBarVisible = true
+        } else {
+            bottomBarVisible = true
+        }
+    }
+
     Scaffold(
-        bottomBar = { BottomNavigationBar(navController, selectedItem = "Home") }
+      bottomBar = {
+            if (bottomBarVisible) {
+                BottomNavigationBar(navController, selectedItem = "Home")
+            }
+        }
     ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
                 .padding(16.dp)
+//                .background(color = Color.White)
+
         ) {
             // User Profile
             Row (
@@ -53,11 +75,16 @@ fun HomeScreen(navController: NavController) {
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
                         .size(54.dp)
+                        .clickable {
+                            // Navigate to another page when the image is clicked
+                            navController.navigate("account-page")
+                        }
                 )
                 Text(
                     text = "Welcome, \nMugeha Jackline",
                     style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Normal
+                    fontWeight = FontWeight.Normal,
+                    fontSize = 16.sp
                 )
             }
 
@@ -106,10 +133,13 @@ fun HomeScreen(navController: NavController) {
                                 fontWeight = FontWeight.Bold
                             )
 
+                            // Eye Icon Button
                             IconButton(onClick = { balanceVisible = !balanceVisible }) {
                                 Icon(
-                                    painter = painterResource(id = R.drawable.view_password_negative),
-                                    contentDescription = "Toggle Balance",
+                                    painter = painterResource(
+                                        id = if (balanceVisible) R.drawable.view_password_3__1_ else R.drawable.view_password_negative
+                                    ),
+                                    contentDescription = if (balanceVisible) "Hide Balance" else "Show Balance",
                                     tint = Color.White,
                                     modifier = Modifier.size(24.dp)
                                 )
@@ -117,33 +147,33 @@ fun HomeScreen(navController: NavController) {
                         }
 
                         // Growth Indicator Row
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Image(
-                                painter = painterResource(id = R.drawable.increase), // Use your arrow icon
-                                contentDescription = "Growth Indicator",
-//                                tint = colorResource(id = R.color.green_accent), // Use color from colors.xml
-                                modifier = Modifier.size(24.dp)
-                            )
-
-                            Spacer(modifier = Modifier.width(4.dp))
-
-                            Row {
-                                Text(
-                                    text = "+35% ",
-                                    color = colorResource(id = R.color.increaseColor),
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.Medium
-                                )
-                                Text(
-                                    text = "Than Last Month",
-                                    color = colorResource(id = R.color.white),
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.Medium
-                                )
-                            }
-                        }
+//                        Row(
+//                            verticalAlignment = Alignment.CenterVertically
+//                        ) {
+//                            Image(
+//                                painter = painterResource(id = R.drawable.increase), // Use your arrow icon
+//                                contentDescription = "Growth Indicator",
+////                                tint = colorResource(id = R.color.green_accent), // Use color from colors.xml
+//                                modifier = Modifier.size(24.dp)
+//                            )
+//
+//                            Spacer(modifier = Modifier.width(4.dp))
+//
+//                            Row {
+//                                Text(
+//                                    text = "+35% ",
+//                                    color = colorResource(id = R.color.increaseColor),
+//                                    fontSize = 14.sp,
+//                                    fontWeight = FontWeight.Medium
+//                                )
+//                                Text(
+//                                    text = "Than Last Month",
+//                                    color = colorResource(id = R.color.white),
+//                                    fontSize = 14.sp,
+//                                    fontWeight = FontWeight.Medium
+//                                )
+//                            }
+//                        }
                     }
                 }
             }
@@ -156,19 +186,70 @@ fun HomeScreen(navController: NavController) {
 
             // Summary Section
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 16.dp, end = 26.dp), // Add padding to the start and end
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically // Align items vertically
             ) {
-                Text(text = "Summary", fontSize = 18.sp, fontWeight = FontWeight.Bold)
-
-                DropdownMenu(
-                    selectedItem = selectedPeriod,
-                    items = listOf("This Week", "This Month", "This Year"),
-                    onItemSelected = { selectedPeriod = it }
+                Text(
+                    text = "Summary",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
                 )
+
+                // Dropdown with "This Week" text and chevron icon
+                Box(
+                    modifier = Modifier
+                        .wrapContentSize()
+                        .clickable { expanded = true } // Open dropdown when clicked
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = selectedPeriod,
+                            color = Color.DarkGray, // Dark grey color for the text
+                            fontSize = 16.sp,
+                            modifier = Modifier.padding(end = 4.dp) // Add spacing between text and icon
+                        )
+                        Image(
+                            painter = painterResource(R.drawable.down_chevron),
+                            contentDescription = "Dropdown",
+                            modifier = Modifier.size(14.dp) // Adjust size of the chevron icon
+                        )
+                    }
+
+                    // Dropdown menu
+                    androidx.compose.material3.DropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false },
+                        modifier = Modifier.background(Color.White) // White background for the dropdown
+                    ) {
+                        listOf("This Week", "This Month", "This Year").forEach { item ->
+                            androidx.compose.material3.DropdownMenuItem(
+                                onClick = {
+                                    selectedPeriod = item
+                                    expanded = false
+                                },
+                                text = {
+                                    Text(
+                                        text = item,
+                                        color = Color.DarkGray, // Dark grey text color
+                                        modifier = Modifier.padding(top = 4.dp, bottom = 4.dp)
+                                    )
+                                },
+                                modifier = Modifier
+//                                    .background(Color(0xFFa3a8a4)) // Darker grey background for each item
+                                    .padding(horizontal = 14.dp, vertical = 4.dp)
+                                    .border(1.dp, Color.LightGray, RoundedCornerShape(8.dp)) // Light gray border
+                            )
+                        }
+                    }
+                }
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             // Transaction List (Scrollable)
             TransactionList()
@@ -197,7 +278,7 @@ fun DashboardButton(
 //            .size(110.dp)
             // Adjust size as needed
             .height(150.dp)
-            .width(120.dp)
+            .width(125.dp)
             .padding(10.dp)
             .clip(RoundedCornerShape(16.dp)) // Clip for rounded corners
           .background(backgroundColor) // Set background color
@@ -238,9 +319,9 @@ fun DashboardButton(
 fun DashboardScreen(navController: NavController) {
     Row(
         modifier = Modifier
-//            .fillMaxSize()
+           .fillMaxWidth()
             .padding(top = 16.dp),
-//        horizontalArrangement = Arrangement.SpaceAround, // Distribute buttons evenly
+        horizontalArrangement = Arrangement.SpaceEvenly, // Distribute buttons evenly
         verticalAlignment = Alignment.CenterVertically
     ) {
         DashboardButton(
@@ -249,7 +330,7 @@ fun DashboardScreen(navController: NavController) {
             navController = navController, // Pass navController
             destination = "add-income-screen", // Replace with your income screen route
             backgroundColor = colorResource(id = R.color.HomeColor), // Example: Green color
-            onClick = {  }
+            onClick = { navController.navigate("add-income-screen")}
         )
         DashboardButton(
             imageResource = R.drawable.money__1_, // Replace with your expenses icon
@@ -257,7 +338,7 @@ fun DashboardScreen(navController: NavController) {
             navController = navController, // Pass navController
             destination = "add-expense-screen", // Replace with your income screen route
             backgroundColor = colorResource(id = R.color.HomeColor), // Example: Red color
-            onClick = { /* Handle expenses click */ }
+            onClick = { navController.navigate("add-expense-screen") }
         )
         DashboardButton(
             imageResource = R.drawable.bar_chart, // Replace with your analytics icon
@@ -265,16 +346,11 @@ fun DashboardScreen(navController: NavController) {
             navController = navController, // Pass navController
             destination = "see-analytics-screen", // Replace with your income screen route
             backgroundColor = colorResource(id = R.color.HomeColor),// Example: Blue color
-            onClick = { /* Handle analytics click */ }
+            onClick = { navController.navigate("analytics-screen") }
         )
     }
 }
 
-@Preview(showBackground = true)
-@Composable
-fun DashboardPreview() {
-    DashboardScreen(navController = NavController(LocalContext.current))
-}
 
 
 @Composable
@@ -319,16 +395,22 @@ fun TransactionItem(title: String, subtitle: String, amount: String, isIncome: B
 
 @Composable
 fun TransactionList() {
-    LazyColumn(modifier = Modifier.fillMaxSize()) {
-        items(10) { index ->
-            val isIncome = index % 2 == 0
-            TransactionItem(
-                title = if (isIncome) "Income" else "Expenses",
-                subtitle = if (isIncome) "Freelance Project" else "Dribbble Pro Subscription",
-                amount = if (isIncome) "+$450" else "-$15",
-                isIncome = isIncome
-            )
-        }
+    Column(modifier = Modifier.fillMaxWidth()) { // Changed to fillMaxWidth
+        // First TransactionItem
+        TransactionItem(
+            title = "Income",
+            subtitle = "Freelance Project",
+            amount = "+$450",
+            isIncome = true
+        )
+
+        // Second TransactionItem
+        TransactionItem(
+            title = "Expenses",
+            subtitle = "Dribbble Pro Subscription",
+            amount = "-$15",
+            isIncome = false
+        )
     }
 }
 

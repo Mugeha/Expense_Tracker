@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -22,11 +23,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.expensetracker.R
 
 @Composable
-fun BottomNavigationBar(navController: NavController, selectedItem: String) {
+fun BottomNavigationBar(navController: NavController, selectedItem: String, modifier: Modifier = Modifier) {
     val items = listOf(
         BottomNavItem("Home", R.drawable.home),
         BottomNavItem("Expenses", R.drawable.expenses_white),
@@ -37,7 +39,7 @@ fun BottomNavigationBar(navController: NavController, selectedItem: String) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(100.dp)
+            .height(90.dp)
             .background(Color(0xFF2C4743), shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)),
         contentAlignment = Alignment.Center
     ) {
@@ -54,12 +56,18 @@ fun BottomNavigationBar(navController: NavController, selectedItem: String) {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier.clickable {
-                        // Handle navigation & selection
+                        // Navigate to the corresponding screen
+                        when (item.title) {
+                            "Home" -> navController.navigate("home-screen")
+                            "Expenses" -> navController.navigate("expenses-screen")
+                            "History" -> navController.navigate("transaction-history")
+                            "Account" -> navController.navigate("my-account-page")
+                        }
                     }
                 ) {
                     if (isSelected) {
                         Box(
-                            modifier = Modifier.size(44.dp)
+                            modifier = Modifier.size(34.dp)
                         ) {
                             // Apply the selected effect to any icon
                             Image(
@@ -73,9 +81,14 @@ fun BottomNavigationBar(navController: NavController, selectedItem: String) {
                             painter = painterResource(id = item.icon),
                             contentDescription = item.title,
                             tint = Color.White,
-                            modifier = Modifier.size(44.dp)
+                            modifier = Modifier.size(34.dp)
                         )
                     }
+                    Text(
+                        text = item.title,
+                        color = Color.White,
+                        fontSize = 12.sp
+                    )
                 }
             }
         }
