@@ -3,6 +3,7 @@ package com.example.expensetracker
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -73,7 +74,7 @@ fun ExpensesScreen(navController: NavController) {
             }
             Text(
                 text = "Expenses",
-                fontSize = 30.sp,
+                fontSize = 24.sp,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Start, // Center the text horizontally
                 modifier = Modifier.fillMaxWidth().padding(start = 60.dp) // Ensure the text takes full width
@@ -269,7 +270,7 @@ fun ExpensesScreen(navController: NavController) {
                 Image(
                     painter = painterResource(id = R.drawable.edit_image_2),
                     contentDescription = "Edit Image",
-                    modifier = Modifier.alpha(0.5f).size(24.dp) // Set opacity to 50%
+                    modifier = Modifier.alpha(0.5f).size(24.dp).clickable{ navController.navigate("edit-expense-screen/${expense.id}")} // Set opacity to 50%
                 )
             }
         }
