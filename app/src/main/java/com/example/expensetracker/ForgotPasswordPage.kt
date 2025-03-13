@@ -13,9 +13,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -26,6 +28,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
@@ -40,99 +43,102 @@ import com.example.expensetracker.ui.theme.ExpenseTrackerTheme
 @Composable
 fun ForgotPasswordPage(navController: NavController) {
     var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-//    val image = painterResource(R.drawable.waving_hand)
+    var emailTouched by remember { mutableStateOf(false) }
+
+    val configuration = LocalConfiguration.current
+    val screenWidth = configuration.screenWidthDp.dp
+
+    val isValidEmail = email.isNotEmpty() && android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()
+    val isEmailInvalid = emailTouched && !isValidEmail
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(colorResource(id = R.color.HomeColor))
-//            .padding(top = 100.dp)
-//            .padding(),
-            .padding(
-                start = 30.dp, // Left padding
-                end = 30.dp,   // Right padding
-                top = 100.dp,  // Top padding
-                bottom = 50.dp // Bottom padding
-            ),
+            .padding(horizontal = 30.dp, vertical = 50.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Top
     ) {
-        Row(
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically // Center the row's content vertically
-        ) {
-            Text(
-                text = "Forgot Password?",
-                style = TextStyle(
-                    color = Color.White,
-                    fontSize = 34.sp,
-                    fontWeight = FontWeight.Bold
-                ),
-                modifier = Modifier
-                    .padding(top = 4.dp, bottom = 16.dp) // Adjust top padding to align with the image
-            )
-            Spacer(modifier = Modifier.width(10.dp))
-//            Image(
-//                painter = image,
-//                contentDescription = null,
-//                contentScale = ContentScale.Crop,
-//                modifier = Modifier
-//                    .size(34.dp)
-//            )
-        }
-//
+        Text(
+            text = "Forgot Password?",
+            style = MaterialTheme.typography.headlineLarge.copy(color = Color.White),
+            modifier = Modifier.padding(top = 80.dp, bottom = 16.dp)
+        )
 
         Text(
             text = "Please fill in your details to proceed",
-            style = TextStyle(fontSize = 18.sp, color = Color.White.copy(alpha = 0.8f))
+            style = MaterialTheme.typography.bodyLarge.copy(color = Color.White.copy(alpha = 0.8f))
         )
+
         Column(
             modifier = Modifier
-                .fillMaxWidth()
+                .widthIn(max = minOf(500.dp, screenWidth * 0.8f)) // Responsive
                 .padding(vertical = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
-        ){
+        ) {
             // Email Field
             CustomUnderlineTextField(
                 value = email,
-                onValueChange = { email = it },
-                placeholder = "Email"
+                onValueChange = {
+                    email = it
+                    emailTouched = true // Mark as touched
+                },
+                placeholder = "Email",
+                isError = isEmailInvalid
             )
+            if (isEmailInvalid) {
+                Text(
+                    text = "Enter a valid email",
+                    color = Color.Red,
+                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+            }
 
+            // Forgot Email? Section
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 4.dp),
+                horizontalArrangement = Arrangement.End
+            ) {
+                Text(
+                    text = "Forgot email?",
+                    style = MaterialTheme.typography.labelSmall.copy(color = colorResource(id = R.color.ForgotPasswordColor)),
+                    modifier = Modifier.clickable {
+                        navController.navigate("enter-phone-number")
+                    }
+                )
+            }
         }
-        Text(
-            text = "Forgot email?",
-            style = TextStyle(
-                color = colorResource(id = R.color.ForgotPasswordColor),
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Normal,
 
-                ),
-            modifier = Modifier
-                .align(Alignment.End)
-                .clickable{ navController.navigate("enter-phone-number")}
-        )
         Column(
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier
-                .padding(top = 40.dp)
+            modifier = Modifier.padding(top = 40.dp)
+        ) {
+            // ✅ Disable button when invalid
+            FilledButton(
+                title = "Send Reset Link",
+                destination = "reset-pwd",
+                navController = navController,
+                enabled = isValidEmail,
+                onClick = { navController.navigate("reset-pwd") }
+            )
 
-        ){
-            FilledButton(title = "Send Reset Link", destination="reset-pwd", navController = navController)
-            Spacer(modifier = Modifier.height(16.dp)) // Add a small spacer for minimal space
+            Spacer(modifier = Modifier.height(16.dp))
 
-            // Login Prompt
-
+            Text(
+                text = "Back to Login",
+                style = MaterialTheme.typography.labelSmall.copy(color = colorResource(id = R.color.ForgotPasswordColor)),
+                modifier = Modifier.clickable { navController.navigate("login-screen") }
+            )
         }
-        Text(
-            text = "Back to Login",
-modifier = Modifier.clickable{navController.navigate("login-screen")},
-            color = colorResource(id = R.color.ForgotPasswordColor),
-        )
     }
 }
+
+
+
 @Preview(showBackground = true)
 @Composable
 fun ForgotPasswordPagePreview() {
@@ -152,155 +158,225 @@ fun ResetPasswordPreview() {
 
 @Composable
 fun ResetPassword(navController: NavController) {
-    var username by remember { mutableStateOf("") }
-    val otp by remember { mutableStateOf("") }
-    var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
+    var passwordTouched by remember { mutableStateOf(false) }
+    var confirmPasswordTouched by remember { mutableStateOf(false) }
+
+    val isPasswordValid = password.length >= 6
+    val isPasswordMatch = confirmPassword == password
+    val showPasswordError = passwordTouched && !isPasswordValid
+    val showConfirmPasswordError = confirmPasswordTouched && !isPasswordMatch
+
+    val isFormValid = isPasswordValid && isPasswordMatch
+
+    val configuration = LocalConfiguration.current
+    val screenWidth = configuration.screenWidthDp.dp
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(colorResource(id = R.color.HomeColor))
-//            .padding(top = 100.dp)
-            .padding(
-                start = 30.dp, // Left padding
-                end = 30.dp,   // Right padding
-               top = 100.dp,  // Top padding
-                bottom = 50.dp // Bottom padding
-            ),
+            .padding(horizontal = 30.dp, vertical = 50.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Top
     ) {
         Text(
             text = "Reset Password",
-            style = TextStyle(color = Color.White, fontSize = 34.sp, fontWeight = FontWeight.Bold),
-            modifier = Modifier.padding(bottom = 16.dp)
+            style = MaterialTheme.typography.headlineLarge.copy(color = Color.White),
+            modifier = Modifier.padding(top = 80.dp, bottom = 16.dp)
         )
-//        Spacer(modifier = Modifier.height(8.dp))
 
         Text(
             text = "Please fill in your details to proceed",
-            style = TextStyle(fontSize = 18.sp, color = Color.White.copy(alpha = 0.8f))
+            style = MaterialTheme.typography.bodyLarge.copy(color = Color.White.copy(alpha = 0.8f))
         )
+
         Column(
             modifier = Modifier
-                .fillMaxWidth()
+                .widthIn(max = minOf(500.dp, screenWidth * 0.8f)) // Responsive layout
                 .padding(vertical = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
-        ){
+        ) {
 
             // Password Field
             CustomUnderlineTextField(
                 value = password,
-                onValueChange = { password = it },
+                onValueChange = {
+                    password = it
+                    passwordTouched = true
+                },
                 placeholder = "Password",
-                isPassword = true
+                isPassword = true,
+                isError = showPasswordError
             )
+
+            if (showPasswordError) {
+                Text(
+                    text = "Password must be at least 6 characters",
+                    color = Color.Red,
+                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+            }
 
             // Confirm Password Field
             CustomUnderlineTextField(
                 value = confirmPassword,
-                onValueChange = { confirmPassword = it },
+                onValueChange = {
+                    confirmPassword = it
+                    confirmPasswordTouched = true
+                },
                 placeholder = "Confirm Password",
-                isPassword = true
+                isPassword = true,
+                isError = showConfirmPasswordError
             )
 
-        }
-        Column(
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
-        ){
-            FilledButton(title = "Reset Password", destination = "login-screen", navController = navController)
-        }
-    }
-}
-
-@Composable
-fun OTPResetPage(navController: NavController) {
-    var phoneno by remember { mutableStateOf("") }
-    var confirmphoneno by remember { mutableStateOf("") }
-//    val image = painterResource(R.drawable.waving_hand)
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(colorResource(id = R.color.HomeColor))
-//            .padding(top = 100.dp)
-            .padding(
-                start = 30.dp, // Left padding
-                end = 30.dp,   // Right padding
-                top = 100.dp,  // Top padding
-                bottom = 50.dp // Bottom padding
-            ),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Top
-    ) {
-        Row(
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically // Center the row's content vertically
-        ) {
-            Text(
-                text = "Enter Phone Number",
-                style = TextStyle(
-                    color = Color.White,
-                    fontSize = 34.sp,
-                    fontWeight = FontWeight.Bold
-                ),
-                modifier = Modifier
-                    .padding(top = 4.dp, bottom = 20.dp) // Adjust top padding to align with the image
-            )
-            Spacer(modifier = Modifier.width(10.dp))
-//            Image(
-//                painter = image,
-//                contentDescription = null,
-//                contentScale = ContentScale.Crop,
-//                modifier = Modifier
-//                    .size(34.dp)
-//            )
-        }
-//
-
-        Text(
-            text = "We will send an OTP verification number to your phone number",
-            style = TextStyle(fontSize = 18.sp, color = Color.White.copy(alpha = 0.8f))
-        )
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ){
-            // Phone Number Field
-            CustomUnderlineTextField(
-                value = phoneno,
-                onValueChange = { phoneno = it },
-                placeholder = "+254 7********"
-            )
-            CustomUnderlineTextField(
-                value = confirmphoneno,
-                onValueChange = { confirmphoneno = it },
-                placeholder = "Confirm Phone Number"
-            )
-
+            if (showConfirmPasswordError) {
+                Text(
+                    text = "Passwords do not match",
+                    color = Color.Red,
+                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+            }
         }
 
         Column(
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier
-                .padding(top = 20.dp)
+            modifier = Modifier.padding(top = 40.dp)
+        ) {
+            FilledButton(
+                title = "Reset Password",
+                destination = "login-screen",
+                navController = navController,
+                enabled = isFormValid, // ✅ Button is disabled if invalid
+                onClick = {
+                    navController.navigate("login-screen")
+                }
+            )
 
-        ){
-            FilledButton(title = "Send me the code", destination = "enter-code", navController = navController)
-            Spacer(modifier = Modifier.height(10.dp)) // Add a small spacer for minimal space
+            Spacer(modifier = Modifier.height(16.dp))
 
-            // Login Prompt
-
+            Text(
+                text = "Back to Login",
+                style = MaterialTheme.typography.labelSmall.copy(color = colorResource(id = R.color.ForgotPasswordColor)),
+                modifier = Modifier.clickable { navController.navigate("login-screen") }
+            )
         }
-
     }
 }
+
+
+
+@Composable
+fun OTPResetPage(navController: NavController) {
+    var phoneno by remember { mutableStateOf("") }
+    var confirmphoneno by remember { mutableStateOf("") }
+    var phoneTouched by remember { mutableStateOf(false) }
+    var confirmPhoneTouched by remember { mutableStateOf(false) }
+
+    val isPhoneValid = phoneno.matches(Regex("^\\+2547\\d{8}$"))
+    val isPhoneMatch = phoneno == confirmphoneno
+    val showPhoneError = phoneTouched && !isPhoneValid
+    val showConfirmPhoneError = confirmPhoneTouched && !isPhoneMatch
+
+    val isFormValid = isPhoneValid && isPhoneMatch
+
+    val configuration = LocalConfiguration.current
+    val screenWidth = configuration.screenWidthDp.dp
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(colorResource(id = R.color.HomeColor))
+            .padding(horizontal = 30.dp, vertical = 50.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Top
+    ) {
+        Text(
+            text = "Enter Phone Number",
+            style = MaterialTheme.typography.headlineLarge.copy(color = Color.White),
+            modifier = Modifier.padding(top = 80.dp, bottom = 16.dp)
+        )
+
+        Text(
+            text = "We will send an OTP verification number to your phone",
+            style = MaterialTheme.typography.bodyLarge.copy(color = Color.White.copy(alpha = 0.8f))
+        )
+
+        Column(
+            modifier = Modifier
+                .widthIn(max = minOf(500.dp, screenWidth * 0.8f))
+                .padding(vertical = 16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+
+            // Phone Number Field
+            CustomUnderlineTextField(
+                value = phoneno,
+                onValueChange = {
+                    phoneno = it
+                    phoneTouched = true
+                },
+                placeholder = "+254 7********",
+                isError = showPhoneError
+            )
+
+            if (showPhoneError) {
+                Text(
+                    text = "Enter a valid Kenyan phone number",
+                    color = Color.Red,
+                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+            }
+
+            // Confirm Phone Number Field
+            CustomUnderlineTextField(
+                value = confirmphoneno,
+                onValueChange = {
+                    confirmphoneno = it
+                    confirmPhoneTouched = true
+                },
+                placeholder = "Confirm Phone Number",
+                isError = showConfirmPhoneError
+            )
+
+            if (showConfirmPhoneError) {
+                Text(
+                    text = "Phone numbers do not match",
+                    color = Color.Red,
+                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+            }
+        }
+
+        Column(
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.padding(top = 40.dp)
+        ) {
+            FilledButton(
+                title = "Send me the code",
+                destination = "enter-code",
+                navController = navController,
+                enabled = isFormValid // ✅ Button only enabled when valid
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text(
+                text = "Back to Login",
+                style = MaterialTheme.typography.labelSmall.copy(color = colorResource(id = R.color.ForgotPasswordColor)),
+                modifier = Modifier.clickable { navController.navigate("login-screen") }
+            )
+        }
+    }
+}
+
 @Preview(showBackground = true)
 @Composable
 fun ConfirmNumberPreview() {
@@ -331,13 +407,8 @@ fun ConfirmNumber(navController: NavController) {
         ) {
             Text(
                 text = "Enter Code",
-                style = TextStyle(
-                    color = Color.White,
-                    fontSize = 30.sp,
-                    fontWeight = FontWeight.Bold
-                ),
-                modifier = Modifier
-                    .padding(top = 4.dp, bottom = 16.dp) // Adjust top padding to align with the image
+                style = MaterialTheme.typography.headlineLarge.copy(color = Color.White),
+                modifier = Modifier.padding(top = 80.dp, bottom = 16.dp)
             )
 //            Spacer(modifier = Modifier.width(10.dp))
 //            Image(
@@ -352,11 +423,9 @@ fun ConfirmNumber(navController: NavController) {
 
         Text(
             text = "Enter the code we sent to the number ending in +254 ******7334",
-            style = TextStyle(
-                fontSize = 18.sp,
-                color = Color.White.copy(alpha = 0.8f)
-            ),
-            modifier = Modifier.padding(start = 16.dp, end = 16.dp) // Add left padding
+            style = MaterialTheme.typography.bodyLarge.copy(color = Color.White.copy(alpha = 0.8f)),
+
+                    modifier = Modifier.padding(start = 16.dp, end = 16.dp) // Add left padding
         )
 
 

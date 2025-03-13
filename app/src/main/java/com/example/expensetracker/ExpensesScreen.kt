@@ -1,14 +1,15 @@
 package com.example.expensetracker
 
-
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -16,7 +17,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -25,7 +25,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import com.example.expensetracker.R
+import androidx.navigation.compose.rememberNavController
 
 fun getExpenseById(expenseId: String?): Expense? {
     val expensesList = listOf(
@@ -41,20 +41,23 @@ fun ExpensesScreen(navController: NavController) {
     var selectedFilter by remember { mutableStateOf(filters[0]) }
 
     val todayExpenses = listOf(
-        ExpenseItem(R.drawable.veggies, "Food", "-$15"),
-        ExpenseItem(R.drawable.fuel, "Fuel", "-$5"),
-        ExpenseItem(R.drawable.shop, "Shopping", "-$30"),
-        ExpenseItem(R.drawable.gym, "Transport", "-$12"),
-        ExpenseItem(R.drawable.therapy, "Internet", "-$20")
+        ExpenseItem(R.drawable.veggies, "Food", "-KSH15", "13:45"),
+        ExpenseItem(R.drawable.fuel, "Fuel", "-KSH5", "09:30"),
+        ExpenseItem(R.drawable.shop, "Shopping", "-KSH30", "11:15"),
+        ExpenseItem(R.drawable.gym, "Transport", "-KSH12", "07:50"),
+        ExpenseItem(R.drawable.therapy, "Internet", "-KSH20", "18:10")
     )
 
     val yesterdayExpenses = listOf(
-        ExpenseItem(R.drawable.salon, "Salon", "-$50"),
-        ExpenseItem(R.drawable.rent, "Rent", "-$400"),
-        ExpenseItem(R.drawable.electricity, "Electricity", "-$60"),
-        ExpenseItem(R.drawable.insurance, "Insurance", "-$100"),
-        ExpenseItem(R.drawable.groceries, "Entertainment", "-$25")
+        ExpenseItem(R.drawable.salon, "Salon", "-KSH50", "16:00"),
+        ExpenseItem(R.drawable.rent, "Rent", "-KSH400", "12:30"),
+        ExpenseItem(R.drawable.electricity, "Electricity", "-KSH60", "14:45"),
+        ExpenseItem(R.drawable.insurance, "Insurance", "-KSH100", "10:00"),
+        ExpenseItem(R.drawable.groceries, "Entertainment", "-KSH25", "20:20")
     )
+
+
+
 
     Column(
         modifier = Modifier
@@ -63,9 +66,8 @@ fun ExpensesScreen(navController: NavController) {
     ) {
         // Top App Bar
         Row(
-            verticalAlignment = Alignment.CenterVertically,
-
-            ) {
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             IconButton(onClick = { navController.popBackStack() }) {
                 Icon(
                     painter = painterResource(id = R.drawable.back_button),
@@ -74,22 +76,23 @@ fun ExpensesScreen(navController: NavController) {
             }
             Text(
                 text = "Expenses",
-                fontSize = 24.sp,
+                style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Start, // Center the text horizontally
-                modifier = Modifier.fillMaxWidth().padding(start = 60.dp) // Ensure the text takes full width
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
             )
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Pie Chart Card (Placeholder)
+        // Pie Chart Card
         Card(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(200.dp),
             shape = RoundedCornerShape(10.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp) // Adds shadow
+            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
         ) {
             Box(
                 modifier = Modifier
@@ -97,8 +100,8 @@ fun ExpensesScreen(navController: NavController) {
                     .background(
                         brush = Brush.verticalGradient(
                             colors = listOf(
-                                colorResource(id = R.color.gradient_start), // Top color from colors.xml
-                                colorResource(id = R.color.gradient_end) // Bottom color from colors.xml
+                                colorResource(id = R.color.gradient_start),
+                                colorResource(id = R.color.gradient_end)
                             )
                         )
                     )
@@ -110,115 +113,45 @@ fun ExpensesScreen(navController: NavController) {
                         .padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Pie Chart Image
                     Image(
                         painter = painterResource(id = R.drawable.pie_chart),
                         contentDescription = "Pie Chart",
-                        modifier = Modifier
-                            .size(150.dp) // Adjust size as needed
+                        modifier = Modifier.size(150.dp)
                     )
 
-                    Spacer(modifier = Modifier.width(58.dp)) // Space between image and labels
+                    Spacer(modifier = Modifier.width(58.dp))
 
-                    // Column for Labels
                     Column(
-                        verticalArrangement = Arrangement.spacedBy(8.dp), // Space between text items
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
                         horizontalAlignment = Alignment.Start
                     ) {
-                        // Rent Label
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Box(
-                                modifier = Modifier
-                                    .size(12.dp)
-                                    .background(
-                                        Color(0xFFFFC107),
-                                        shape = CircleShape
-                                    ) // Yellow for Rent
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "Rent",
-                                color = Color.White,
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                        }
-
-                        // Electricity Label
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Box(
-                                modifier = Modifier
-                                    .size(12.dp)
-                                    .background(
-                                        Color(0xFF5a8299),
-                                        shape = CircleShape
-                                    ) // Blue for Electricity
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "Electricity",
-                                color = Color.White,
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                        }
-
-                        // Insurance Label
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Box(
-                                modifier = Modifier
-                                    .size(12.dp)
-                                    .background(
-                                        Color(0xFF4CAF50),
-                                        shape = CircleShape
-                                    ) // Green for Insurance
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "Insurance",
-                                color = Color.White,
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                        }
-
-                        // Fuel Label
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Box(
-                                modifier = Modifier
-                                    .size(12.dp)
-                                    .background(
-                                        Color(0xFFF44336),
-                                        shape = CircleShape
-                                    ) // Red for Fuel
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "Fuel",
-                                color = Color.White,
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                        }
+                        CategoryLabel("Rent", Color(0xFFFFC107))
+                        CategoryLabel("Electricity", Color(0xFF5a8299))
+                        CategoryLabel("Insurance", Color(0xFF4CAF50))
+                        CategoryLabel("Fuel", Color(0xFFF44336))
                     }
                 }
             }
         }
 
-            Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
-            // Filter Row
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                filters.forEach { filter ->
-                    FilterButton(filter, filter == selectedFilter) {
-                        selectedFilter = filter
-                    }
+        // Filter Row
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            filters.forEach { filter ->
+                FilterButton(filter, filter == selectedFilter) {
+                    selectedFilter = filter
                 }
             }
+        }
 
-            Spacer(modifier = Modifier.height(26.dp))
+        Spacer(modifier = Modifier.height(26.dp))
 
-            // Expenses List
-        LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) { // Adjust 8.dp to your desired spacing
+        // Expenses List
+        LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             item {
                 Text("Today", fontSize = 18.sp, fontWeight = FontWeight.Bold)
             }
@@ -234,69 +167,80 @@ fun ExpensesScreen(navController: NavController) {
                 ExpenseRow(expense, navController = navController)
             }
         }
-        }
     }
+}
 
-// 🔹 Expense Data Model
-
-
-    // 🔹 Expense Row UI
-    @Composable
-    fun ExpenseRow(expense: ExpenseItem, navController: NavController) {
-        Row(
+@Composable
+fun CategoryLabel(text: String, color: Color) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .background(
-                    color = Color.LightGray, // Light gray background
-                    shape = RoundedCornerShape(10.dp) // Rounded corners
-                )
-                .padding(vertical = 16.dp, horizontal = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+                .size(12.dp)
+                .background(color, shape = CircleShape)
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(text, color = Color.White, style = MaterialTheme.typography.bodyMedium)
+    }
+}
+
+@Composable
+fun ExpenseRow(expense: ExpenseItem, navController: NavController) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color.LightGray, shape = RoundedCornerShape(10.dp))
+            .padding(vertical = 16.dp, horizontal = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Image(
+            painter = painterResource(id = expense.iconRes),
+            contentDescription = expense.title,
+            modifier = Modifier.size(40.dp)
+        )
+        Spacer(modifier = Modifier.width(10.dp))
+
+        Column(modifier = Modifier.weight(1f)) {
+            Text(expense.title, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            Text(expense.time, fontSize = 12.sp, color = Color.DarkGray) // Time displayed below title
+        }
+
+        Spacer(modifier = Modifier.width(10.dp))
+        Text(expense.amount, fontSize = 16.sp, color = Color.Red)
+
+        IconButton(onClick = {
+            navController.navigate("edit-expense-screen/{expenseId}")
+        }) {
             Image(
-                painter = painterResource(id = expense.iconRes),
-                contentDescription = expense.title,
-                modifier = Modifier.size(40.dp)
+                painter = painterResource(id = R.drawable.edit_image_2),
+                contentDescription = "Edit Image",
+                modifier = Modifier
+                    .alpha(0.5f)
+                    .size(24.dp)
+                    .clickable { navController.navigate("edit-expense-screen/{expenseId}") }
             )
-            Spacer(modifier = Modifier.width(10.dp))
-            Text(expense.title, modifier = Modifier.weight(1f), fontSize = 16.sp)
-            Spacer(modifier = Modifier.width(10.dp))
-            Text(expense.amount, fontSize = 16.sp, color = Color.Red)
-            IconButton(onClick = {
-                val expense = Expense("1", "15", "Food", "Lunch at Cafe", "23/02/2025", "Card")
-
-                navController.navigate("edit-expense/${expense.id}")
-            }) {
-                Image(
-                    painter = painterResource(id = R.drawable.edit_image_2),
-                    contentDescription = "Edit Image",
-                    modifier = Modifier.alpha(0.5f).size(24.dp).clickable{ navController.navigate("edit-expense-screen/${expense.id}")} // Set opacity to 50%
-                )
-            }
         }
     }
+}
 
 
-    @Composable
-    fun FilterButton(text: String, isSelected: Boolean, onClick: () -> Unit) {
-        Button(
-            onClick = onClick,
-            colors = ButtonDefaults.buttonColors(
-                containerColor = if (isSelected) Color.Gray else Color.LightGray,
-                contentColor = Color.White
-            ),
-
-            shape = RoundedCornerShape(8.dp),
-            modifier = Modifier.width(100.dp)
-        ) {
-            Text(text, fontSize = 14.sp, textAlign = TextAlign.Center, color = Color.Black)
-
-        }
+@Composable
+fun FilterButton(text: String, isSelected: Boolean, onClick: () -> Unit) {
+    Button(
+        onClick = onClick,
+        colors = ButtonDefaults.buttonColors(
+            containerColor = if (isSelected) Color.Gray else Color.LightGray,
+            contentColor = Color.White
+        ),
+        shape = RoundedCornerShape(8.dp),
+        modifier = Modifier.width(100.dp)
+    ) {
+        Text(text, fontSize = 14.sp, textAlign = TextAlign.Center, color = Color.Black)
     }
+}
 
-    @Preview(showBackground = true)
-    @Composable
-    fun ExpensesScreenPreview() {
-        ExpensesScreen(navController = NavController(LocalContext.current))
-    }
-
+@Preview(showBackground = true)
+@Composable
+fun ExpensesScreenPreview() {
+    val navController = rememberNavController()
+    ExpensesScreen(navController = navController)
+}

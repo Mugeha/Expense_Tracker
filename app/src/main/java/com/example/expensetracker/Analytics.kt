@@ -1,7 +1,6 @@
 package com.example.expensetracker
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -10,11 +9,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -48,7 +43,6 @@ fun AnalyticsScreen(navController: NavController) {
     var currentCategoryIndex by remember { mutableStateOf(0) }
     var balanceVisible by remember { mutableStateOf(false) }
 
-
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -57,27 +51,25 @@ fun AnalyticsScreen(navController: NavController) {
         // Top App Bar
         Row(
             verticalAlignment = Alignment.CenterVertically,
-
-            ) {
+            modifier = Modifier.fillMaxWidth()
+        ) {
             IconButton(onClick = { navController.popBackStack() }) {
                 Icon(
                     painter = painterResource(id = R.drawable.back_button),
                     contentDescription = "Back"
                 )
             }
+//            Spacer(modifier = Modifier.weight(1f))
             Text(
                 text = "Analytics",
-                fontSize = 30.sp,
+                style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Start, // Center the text horizontally
-                modifier = Modifier.fillMaxWidth()
-                    .padding(start = 60.dp) // Ensure the text takes full width
+                textAlign = TextAlign.Center,
+                modifier = Modifier.weight(3f)
             )
+            Spacer(modifier = Modifier.weight(1f)) // Balances spacing
         }
         Spacer(modifier = Modifier.height(20.dp))
-
-
-        // Balance Card
 
         // Balance Card
         Card(
@@ -93,8 +85,8 @@ fun AnalyticsScreen(navController: NavController) {
                     .background(
                         brush = Brush.verticalGradient(
                             colors = listOf(
-                                colorResource(id = R.color.gradient_start), // Top color from colors.xml
-                                colorResource(id = R.color.gradient_end) // Bottom color from colors.xml
+                                colorResource(id = R.color.gradient_start),
+                                colorResource(id = R.color.gradient_end)
                             )
                         )
                     )
@@ -140,9 +132,8 @@ fun AnalyticsScreen(navController: NavController) {
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Image(
-                            painter = painterResource(id = R.drawable.increase), // Use your arrow icon
+                            painter = painterResource(id = R.drawable.increase),
                             contentDescription = "Growth Indicator",
-//                                tint = colorResource(id = R.color.green_accent), // Use color from colors.xml
                             modifier = Modifier.size(24.dp)
                         )
 
@@ -157,7 +148,7 @@ fun AnalyticsScreen(navController: NavController) {
                             )
                             Text(
                                 text = "Than Last Month",
-                                color = colorResource(id = R.color.white),
+                                color = Color.White,
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Medium
                             )
@@ -178,13 +169,14 @@ fun AnalyticsScreen(navController: NavController) {
         Spacer(modifier = Modifier.height(20.dp))
 
         Box(
+            modifier = Modifier.fillMaxWidth(),
             contentAlignment = Alignment.Center
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.Center
             ) {
-                Image(
+                Icon(
                     painter = painterResource(id = R.drawable.back_button),
                     contentDescription = "Previous Timeframe",
                     modifier = Modifier.size(24.dp).clickable {
@@ -195,7 +187,7 @@ fun AnalyticsScreen(navController: NavController) {
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(selectedTimeframe, fontSize = 16.sp)
                 Spacer(modifier = Modifier.width(8.dp))
-                Image(
+                Icon(
                     painter = painterResource(id = R.drawable.forward_arrow),
                     contentDescription = "Next Timeframe",
                     modifier = Modifier.size(24.dp).clickable {
@@ -209,9 +201,11 @@ fun AnalyticsScreen(navController: NavController) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Graph Placeholder (Replace with actual Graph logic)
+        // Graph Placeholder
         Box(
-            modifier = Modifier.fillMaxWidth().height(200.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(200.dp)
                 .background(Color.Gray, RoundedCornerShape(12.dp)),
             contentAlignment = Alignment.Center
         ) {
@@ -226,7 +220,7 @@ fun AnalyticsScreen(navController: NavController) {
         Spacer(modifier = Modifier.height(16.dp))
 
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Image(
+            Icon(
                 painter = painterResource(id = R.drawable.back_button),
                 contentDescription = "Previous Category",
                 modifier = Modifier.size(24.dp).clickable {
@@ -261,7 +255,7 @@ fun AnalyticsScreen(navController: NavController) {
                 }
             }
 
-            Image(
+            Icon(
                 painter = painterResource(id = R.drawable.forward_arrow),
                 contentDescription = "Next Category",
                 modifier = Modifier.size(24.dp).clickable {
@@ -271,7 +265,6 @@ fun AnalyticsScreen(navController: NavController) {
             )
         }
     }
-
 }
 
 @Preview(showBackground = true)
@@ -279,4 +272,3 @@ fun AnalyticsScreen(navController: NavController) {
 fun AnalyticsScreenPreview() {
     AnalyticsScreen(navController = NavController(LocalContext.current))
 }
-

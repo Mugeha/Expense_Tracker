@@ -66,38 +66,26 @@ fun AddExpenseScreen(navController: NavController) {
                 text = "Add Expense",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
-                fontSize = 24.sp,
                 modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
                 textAlign = TextAlign.Center
             )
         }
-
-        OutlinedTextField(
-            value = amount,
-            onValueChange = { amount = it },
-            label = { Text("Enter Amount") },
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(25.dp),
-            colors = OutlinedTextFieldDefaults.colors(
-                unfocusedBorderColor = Color.Gray,
-                focusedBorderColor = focusedBorderColor,
-                unfocusedLabelColor = Color.Gray,
-                focusedLabelColor = focusedBorderColor,
-
-            ),
-
-        )
-
 
 // Amount Input
         OutlinedTextField(
             value = amount,
             onValueChange = {
                 amount = it
-                category = suggestCategory(it) // Auto-suggest category
+                if (category.isEmpty() || category == suggestExpenseCategory(amount)) {
+                    // Auto-suggest only if no manual selection
+                    category = suggestExpenseCategory(it)
+                }
             },
             colors = TextFieldDefaults.outlinedTextFieldColors(
-                focusedBorderColor = focusedBorderColor
+                focusedBorderColor = focusedBorderColor,
+                unfocusedBorderColor = Color.Gray,
+                unfocusedLabelColor = Color.Gray,
+                focusedLabelColor = focusedBorderColor,
             ),
             label = { Text("Enter Amount") },
             modifier = Modifier.fillMaxWidth(),

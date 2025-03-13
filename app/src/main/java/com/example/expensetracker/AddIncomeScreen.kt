@@ -69,7 +69,6 @@ fun AddIncomeScreen(navController: NavController) {
         Text(
             text = "Add Income",
             style = MaterialTheme.typography.titleLarge,
-            fontSize = 24.sp,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.fillMaxWidth(),
             textAlign = TextAlign.Center
@@ -82,7 +81,9 @@ fun AddIncomeScreen(navController: NavController) {
             value = amount,
             onValueChange = {
                 amount = it
-                category = suggestCategory(it) // Auto-suggest category
+                if (category.isEmpty() || category == suggestCategory(amount)) { // Only auto-suggest if not manually changed
+                    category = suggestCategory(it)
+                }
             },
             colors = TextFieldDefaults.outlinedTextFieldColors(
                 focusedBorderColor = focusedBorderColor
@@ -90,8 +91,8 @@ fun AddIncomeScreen(navController: NavController) {
             label = { Text("Enter Amount") },
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(25.dp),
-
         )
+
 
         Spacer(modifier = Modifier.height(16.dp))
 

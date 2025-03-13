@@ -146,34 +146,7 @@ fun HomeScreen(navController: NavController) {
                             }
                         }
 
-                        // Growth Indicator Row
-//                        Row(
-//                            verticalAlignment = Alignment.CenterVertically
-//                        ) {
-//                            Image(
-//                                painter = painterResource(id = R.drawable.increase), // Use your arrow icon
-//                                contentDescription = "Growth Indicator",
-////                                tint = colorResource(id = R.color.green_accent), // Use color from colors.xml
-//                                modifier = Modifier.size(24.dp)
-//                            )
-//
-//                            Spacer(modifier = Modifier.width(4.dp))
-//
-//                            Row {
-//                                Text(
-//                                    text = "+35% ",
-//                                    color = colorResource(id = R.color.increaseColor),
-//                                    fontSize = 14.sp,
-//                                    fontWeight = FontWeight.Medium
-//                                )
-//                                Text(
-//                                    text = "Than Last Month",
-//                                    color = colorResource(id = R.color.white),
-//                                    fontSize = 14.sp,
-//                                    fontWeight = FontWeight.Medium
-//                                )
-//                            }
-//                        }
+
                     }
                 }
             }
@@ -400,7 +373,7 @@ fun TransactionList() {
         TransactionItem(
             title = "Income",
             subtitle = "Freelance Project",
-            amount = "+$450",
+            amount = "+KSH450",
             isIncome = true
         )
 
@@ -408,7 +381,7 @@ fun TransactionList() {
         TransactionItem(
             title = "Expenses",
             subtitle = "Dribbble Pro Subscription",
-            amount = "-$15",
+            amount = "-KSH15",
             isIncome = false
         )
     }

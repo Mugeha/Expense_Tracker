@@ -1,6 +1,7 @@
 package com.example.expensetracker
 
 import ProfileScreen
+import android.content.res.Configuration
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -25,6 +26,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -56,6 +59,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
 //import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
@@ -76,6 +80,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 //import androidx.lint.kotlin.metadata.Visibility
 import com.example.expensetracker.ui.theme.ExpenseTrackerTheme
+import com.example.walletapp.TransactionHistoryScreen
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -109,7 +114,7 @@ fun MyAppNavigation() {
 
     NavHost(navController = navController, startDestination = "splash-screen") {
         composable("splash-screen") {
-            BackgroundImage(navController)
+            TeaserScreen(navController)
         }
         composable("signup-screen") {
             SignupScreen(navController)
@@ -180,28 +185,11 @@ fun MyAppNavigation() {
 }
 
 
-
-@Preview(showBackground = true)
-@Composable
-fun WhiteButtonPreview() {
-    ExpenseTrackerTheme {
-        WhiteButton(title = "Log in with Google")
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun WhiteButtonWithStrokePreview() {
-    ExpenseTrackerTheme {
-        WhiteButtonWithStroke(title = "Maybe Later")
-    }
-}
-
 @Preview(showBackground = true)
 @Composable
 fun HomePagePreview() {
     ExpenseTrackerTheme {
-        BackgroundImage(navController = rememberNavController())
+        TeaserScreen(navController = rememberNavController())
     }
 }
 
@@ -264,9 +252,8 @@ fun WhiteButton(onClick: () -> Unit = {}, title: String) {
         ),
         shape = RoundedCornerShape(70.dp), // Rounded corners
         modifier = Modifier
-//            .padding(16.dp)
-            .height(70.dp)
-            .width(342.dp)
+            .height(65.dp)
+            .fillMaxWidth(0.9f) // Flexible width
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically, // Align icon and text vertically
@@ -292,14 +279,15 @@ fun WhiteButton(onClick: () -> Unit = {}, title: String) {
 }
 
 @Composable
-fun BackgroundImage(navController: NavController) {
+fun TeaserScreen(navController: NavController) {
     val image = painterResource(R.drawable.background_image)
-
+    val configuration = LocalConfiguration.current
+    val isPortrait = configuration.orientation == Configuration.ORIENTATION_PORTRAIT
 
     Column(
-        modifier = Modifier
-            .fillMaxSize()
+        modifier = Modifier.fillMaxSize()
     ) {
+        // Top Image Section
         Image(
             painter = image,
             contentDescription = null,
@@ -307,78 +295,79 @@ fun BackgroundImage(navController: NavController) {
             alignment = Alignment.Center,
             modifier = Modifier
                 .fillMaxWidth()
-                .fillMaxHeight(0.6F) // 60% of screen height
+                .weight(if (isPortrait) 0.6f else 0.4f) // Less height in landscape
         )
 
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .fillMaxHeight()
-//            .padding(top = 28.dp)
-            .background(colorResource(id = R.color.HomeColor))
-            .padding(top = 40.dp)
-            .padding(end = 20.dp)
-            .padding(start = 20.dp), // Adds padding inside the column// Adds padding inside the column
-        verticalArrangement = Arrangement.Top // Centers content vertically
-    ) {
-        // Title
-        Text(
-            text = "Always Track\nYour Expenses",
-            fontSize = 28.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color.White,
-            lineHeight = 32.sp,
-            textAlign = TextAlign.Left, // Align the text to the left
-            modifier = Modifier.padding(start = 20.dp)
-        )
-        Spacer(modifier = Modifier.height(6.dp))
-
-        // Subtitle
-        Text(
-            text = "Now you can track expenses records on\nyour phone",
-            fontSize = 16.sp,
-            color = Color.White,
-            modifier = Modifier.padding(start = 20.dp)
-        )
-
-        Spacer(modifier = Modifier.height(26.dp))
-
+        // Bottom Section
         Column(
-            modifier = Modifier.fillMaxSize(), // Ensures the Column takes up the full screen
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(if (isPortrait) 0.4f else 0.6f) // More space for text in landscape
+                .background(colorResource(id = R.color.HomeColor))
+                .padding(start = 20.dp, top = if (isPortrait) 40.dp else 20.dp, end = 20.dp),
             verticalArrangement = Arrangement.Top,
-            horizontalAlignment = Alignment.CenterHorizontally
-        ){
-            FilledButton(title = "Get Started", destination = "signup-screen", navController = navController)
-            // Login Prompt
-            Spacer(modifier = Modifier.height(16.dp))
-            TextForSigningUpOrLoginIn(navController = navController)
-        }
+            horizontalAlignment = Alignment.Start
+        ) {
+            // Title
+            Text(
+                text = "Always Track\nYour Expenses",
+                style = MaterialTheme.typography.titleLarge.copy( // 🔥 Uses your theme
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
+            )
 
-    }
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // Subtitle
+            Text(
+                text = "Now you can track expenses records on\nyour phone",
+                style = MaterialTheme.typography.bodyLarge.copy(color = Color.White) // 🔥 Uses your theme
+            )
+
+            Spacer(modifier = Modifier.height(if (isPortrait) 30.dp else 20.dp))
+
+            // Button and Login Prompt
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.Top,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                FilledButton(title = "Get Started", destination = "signup-screen", navController = navController)
+                Spacer(modifier = Modifier.height(16.dp))
+                TextForSigningUpOrLoginIn(navController = navController)
+            }
+        }
     }
 }
+
+
 
 @Composable
 fun FilledButton( navController: NavController,
                   onClick: () -> Unit = {},
                   title: String,
-                  destination: String
+                  destination: String,
+                  enabled: Boolean = true // Add this parameter with a default value
 )
 {
     Button(
 onClick = {
-    onClick() // Call any additional onClick logic
+    onClick()// Call any additional onClick logic
     navController.navigate(destination) // Navigate to the specified destination
 },
         colors = ButtonDefaults.buttonColors(
             containerColor = Color(0xFF336B40), // Custom green button color
-            contentColor = Color.White // White text color
+            contentColor = Color.White,
+            disabledContainerColor = Color(0xFF336B40).copy(alpha = 0.67f) // 67% opacity for disabled button
         ),
+
+                enabled = enabled, // Use the enabled parameter
+
         shape = RoundedCornerShape(70.dp), // Optional: rounded corners
         modifier = Modifier
-//            .padding(16.dp)
             .height(65.dp)
-            .width(332.dp)
+            .fillMaxWidth(0.9f) // Flexible width
     ) {
         Text(
             text = title,
@@ -390,14 +379,14 @@ onClick = {
 }
 
 
-@Preview(showBackground = true)
-@Composable
-fun TextForSigningUpOrLoginInPreview() {
-    ExpenseTrackerTheme {
-        val navController = rememberNavController() // Create a dummy NavController for preview
-        TextForSigningUpOrLoginIn(navController = navController)
-    }
-}
+//@Preview(showBackground = true)
+//@Composable
+//fun AnalyticsScreenPreview() {
+//    ExpenseTrackerTheme {
+//        val navController = rememberNavController() // Create a dummy NavController for preview
+//        AnalyticsScreen(navController = navController)
+//    }
+//}
 
 
 
@@ -440,84 +429,158 @@ fun SignUpScreenPreview() {
 
 @Composable
 fun SignupScreen(navController: NavController) {
+    val screenWidth = LocalConfiguration.current.screenWidthDp.dp
+    val screenHeight = LocalConfiguration.current.screenHeightDp.dp
+    val isLandscape = screenWidth > screenHeight
+
     var username by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
 
-    Column(
+    // Track if the user has interacted with each field
+    var usernameTouched by remember { mutableStateOf(false) }
+    var emailTouched by remember { mutableStateOf(false) }
+    var passwordTouched by remember { mutableStateOf(false) }
+    var confirmPasswordTouched by remember { mutableStateOf(false) }
+
+    val isUsernameInvalid = usernameTouched && username.isEmpty()
+    val isEmailInvalid = emailTouched && (email.isEmpty() || !android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches())
+    val isPasswordInvalid = passwordTouched && (password.isEmpty() || password.length < 6)
+    val isConfirmPasswordInvalid = confirmPasswordTouched && (confirmPassword.isEmpty() || confirmPassword != password)
+
+    Box(
         modifier = Modifier
             .fillMaxSize()
+            .widthIn(max = minOf(500.dp, screenWidth * 0.8f))
             .background(colorResource(id = R.color.HomeColor))
-//            .padding(top = 100.dp)
-            .padding(
-                start = 30.dp, // Left padding
-                end = 30.dp,   // Right padding
-                top = 100.dp,  // Top padding
-                bottom = 50.dp // Bottom padding
-            ),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Top
+            .padding(horizontal = if (isLandscape) 50.dp else 30.dp, vertical = if (isLandscape) 20.dp else 50.dp),
+        contentAlignment = Alignment.Center
     ) {
-        Text(
-            text = "Sign Up",
-            style = TextStyle(color = Color.White, fontSize = 34.sp, fontWeight = FontWeight.Bold),
-            modifier = Modifier.padding(bottom = 16.dp)
-        )
-//        Spacer(modifier = Modifier.height(8.dp))
-
-        Text(
-            text = "Please fill in your details to proceed",
-            style = TextStyle(fontSize = 18.sp, color = Color.White.copy(alpha = 0.8f))
-        )
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 16.dp),
+                .padding(horizontal = 20.dp),
             horizontalAlignment = Alignment.CenterHorizontally
-        ){
-            // Username Field
-            CustomUnderlineTextField(
-                value = username,
-                onValueChange = { username = it },
-                placeholder = "Username"
+        ) {
+            Text(
+                text = "Sign Up",
+                style = MaterialTheme.typography.headlineLarge.copy(color = Color.White),
+                modifier = Modifier.padding(bottom = 16.dp)
             )
 
-            // Email Field
-            CustomUnderlineTextField(
-                value = email,
-                onValueChange = { email = it },
-                placeholder = "Email"
+            Text(
+                text = "Please fill in your details to proceed",
+                style = MaterialTheme.typography.bodyLarge.copy(color = Color.White.copy(alpha = 0.8f))
             )
 
-            // Password Field
-            CustomUnderlineTextField(
-                value = password,
-                onValueChange = { password = it },
-                placeholder = "Password",
-                isPassword = true
-            )
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // Username Field
+                CustomUnderlineTextField(
+                    value = username,
+                    onValueChange = {
+                        username = it
+                        usernameTouched = true
+                    },
+                    placeholder = "Username",
+                    isError = isUsernameInvalid
+                )
+                if (isUsernameInvalid) {
+                    Text(
+                        text = "Username cannot be empty",
+                        color = Color.Red,
+                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
+                }
 
-            // Confirm Password Field
-            CustomUnderlineTextField(
-                value = confirmPassword,
-                onValueChange = { confirmPassword = it },
-                placeholder = "Confirm Password",
-                isPassword = true
-            )
+                // Email Field
+                CustomUnderlineTextField(
+                    value = email,
+                    onValueChange = {
+                        email = it
+                        emailTouched = true
+                    },
+                    placeholder = "Email",
+                    isError = isEmailInvalid
+                )
+                if (isEmailInvalid) {
+                    Text(
+                        text = "Enter a valid email",
+                        color = Color.Red,
+                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
+                }
 
-        }
-        Column(
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
-        ){
-            FilledButton(title = "Continue", destination = "addphoto-screen", navController = navController)
-            // Login Prompt
-            Spacer(modifier = Modifier.height(16.dp))
-            TextForSigningUpOrLoginIn(navController = navController)
+                // Password Field
+                CustomUnderlineTextField(
+                    value = password,
+                    onValueChange = {
+                        password = it
+                        passwordTouched = true
+                    },
+                    placeholder = "Password",
+                    isPassword = true,
+                    isError = isPasswordInvalid
+                )
+                if (isPasswordInvalid) {
+                    Text(
+                        text = "Password must be at least 6 characters",
+                        color = Color.Red,
+                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
+                }
+
+                // Confirm Password Field
+                CustomUnderlineTextField(
+                    value = confirmPassword,
+                    onValueChange = {
+                        confirmPassword = it
+                        confirmPasswordTouched = true
+                    },
+                    placeholder = "Confirm Password",
+                    isPassword = true,
+                    isError = isConfirmPasswordInvalid
+                )
+                if (isConfirmPasswordInvalid) {
+                    Text(
+                        text = "Passwords do not match",
+                        color = Color.Red,
+                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
+                }
+            }
+
+            Column(
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // ✅ Disable button when invalid
+                FilledButton(
+                    title = "Continue",
+                    destination = "addphoto-screen",
+                    navController = navController,
+                    enabled = !(isUsernameInvalid || isEmailInvalid || isPasswordInvalid || isConfirmPasswordInvalid),
+                    onClick = {
+                        navController.navigate("addphoto-screen")
+                    }
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                TextForSigningUpOrLoginIn(navController = navController)
+            }
         }
     }
 }
+
+
 
 @Preview (showBackground = true)
 @Composable
@@ -538,109 +601,135 @@ fun AddPhotoPreview() {
 fun LoginScreen(navController: NavController) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+
+    // Track if the user has interacted with each field
+    var emailTouched by remember { mutableStateOf(false) }
+    var passwordTouched by remember { mutableStateOf(false) }
+
     val image = painterResource(R.drawable.waving_hand)
+    val context = LocalConfiguration.current
+    val screenWidth = context.screenWidthDp.dp
+
+    val isEmailInvalid = emailTouched && (email.isEmpty() || !android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches())
+    val isPasswordInvalid = passwordTouched && (password.isEmpty() || password.length < 6)
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(colorResource(id = R.color.HomeColor))
-//            .padding(top = 100.dp)
             .padding(
-                start = 30.dp, // Left padding
-                end = 30.dp,   // Right padding
-                top = 100.dp,  // Top padding
-                bottom = 50.dp // Bottom padding
+                start = 30.dp,
+                end = 30.dp,
+                top = 100.dp,
+                bottom = 50.dp
             ),
         horizontalAlignment = Alignment.CenterHorizontally,
-       verticalArrangement = Arrangement.Top
+        verticalArrangement = Arrangement.Top
     ) {
         Row(
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(bottom = 16.dp)
+            modifier = Modifier.padding(bottom = 16.dp)
         ) {
             Text(
-                text = "Welcome Back !",
-                style = TextStyle(
-                    color = Color.White,
-                    fontSize = 34.sp,
-                    fontWeight = FontWeight.Bold
-                ),
-                modifier = Modifier
-                    .padding(top = 4.dp) // Removed bottom padding to align with the image
+                text = "Welcome Back!",
+                style = MaterialTheme.typography.headlineLarge.copy(color = Color.White),
+                modifier = Modifier.padding(top = 4.dp)
             )
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.width(8.dp))
             Image(
                 painter = image,
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .size(34.dp) // Matches the font size of the text
-                    .padding(bottom = 4.dp) // Adjusted bottom padding to align with the text
+                modifier = Modifier.size(34.dp)
             )
         }
-//
 
         Text(
             text = "Please fill in your details to proceed",
-            style = TextStyle(fontSize = 18.sp, color = Color.White.copy(alpha = 0.8f))
+            style = MaterialTheme.typography.bodyLarge.copy(color = Color.White.copy(alpha = 0.8f))
         )
+
         Column(
             modifier = Modifier
-                .fillMaxWidth()
+                .widthIn(max = minOf(500.dp, screenWidth * 0.8f))
                 .padding(vertical = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
-        ){
+        ) {
             // Email Field
             CustomUnderlineTextField(
                 value = email,
-                onValueChange = { email = it },
-                placeholder = "Email"
+                onValueChange = {
+                    email = it
+                    emailTouched = true // Mark email as touched
+                },
+                placeholder = "Email",
+                isError = isEmailInvalid
             )
+            if (isEmailInvalid) {
+                Text(
+                    text = "Enter a valid email",
+                    color = Color.Red,
+                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+            }
 
             // Password Field
             CustomUnderlineTextField(
                 value = password,
-                onValueChange = { password = it },
+                onValueChange = {
+                    password = it
+                    passwordTouched = true // Mark password as touched
+                },
                 placeholder = "Password",
-                isPassword = true
+                isPassword = true,
+                isError = isPasswordInvalid
             )
-
-
-
-
+            if (isPasswordInvalid) {
+                Text(
+                    text = "Password must be at least 6 characters",
+                    color = Color.Red,
+                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+            }
         }
+
         Text(
             text = "Forgot password?",
-            style = TextStyle(
-                color = colorResource(id = R.color.ForgotPasswordColor),
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Normal,
-
-                ),
+            style = MaterialTheme.typography.labelSmall.copy(color = colorResource(id = R.color.ForgotPasswordColor)),
             modifier = Modifier
-                .align(Alignment.End)// Adjust top padding to align with the image
-               .clickable {
-                navController.navigate("forgot-pwd") // Navigate to login screen
-            }
+                .align(Alignment.End)
+                .clickable {
+                    navController.navigate("forgot-pwd")
+                }
         )
+
         Column(
-          verticalArrangement = Arrangement.Center,
+            verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier
-             .padding(top = 40.dp)
-
-        ){
-            FilledButton(title = "Log in", destination ="home-screen", navController = navController)
-         Spacer(modifier = Modifier.height(10.dp)) // Add a small spacer for minimal space
+            modifier = Modifier.padding(top = 40.dp)
+        ) {
+            // ✅ Disable button when invalid
+            FilledButton(
+                title = "Log in",
+                destination = "home-screen",
+                navController = navController,
+                enabled = !(isEmailInvalid || isPasswordInvalid),
+                onClick = {
+                    navController.navigate("home-screen")
+                }
+            )
+            Spacer(modifier = Modifier.height(10.dp))
             WhiteButton(title = "Log in with Google")
-            // Login Prompt
-
         }
         Spacer(modifier = Modifier.height(16.dp))
         TextForSignup(navController = navController)
     }
 }
+
+
 
 @Composable
 fun TextForSignup(navController: NavController)  {Box(
@@ -676,7 +765,9 @@ fun CustomUnderlineTextField(
     value: String,
     onValueChange: (String) -> Unit,
     placeholder: String,
-    isPassword: Boolean = false
+    isPassword: Boolean = false,
+    isError: Boolean = false,
+    errorMessage: String = "" // New parameter
 ) {
     var isPasswordVisible by remember { mutableStateOf(false) }
     var isFocused by remember { mutableStateOf(false) }
@@ -701,7 +792,6 @@ fun CustomUnderlineTextField(
         ) { innerTextField ->
             Box(
                 modifier = Modifier.fillMaxWidth()
-//                    .padding(bottom = 10.dp)
             ) {
                 if (value.isEmpty() && !isFocused) {
                     Text(
@@ -710,6 +800,16 @@ fun CustomUnderlineTextField(
                     )
                 }
                 innerTextField()
+            }
+
+            // Display custom error text if isError is true
+            if (isError && errorMessage.isNotEmpty()) {
+                Text(
+                    text = errorMessage,
+                    color = Color.Red,
+                    fontSize = 12.sp,
+                    modifier = Modifier.padding(start = 4.dp, top = 2.dp)
+                )
             }
         }
 
@@ -740,6 +840,7 @@ fun CustomUnderlineTextField(
     }
 }
 
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddPhoto(navController: NavController) {
@@ -749,6 +850,8 @@ fun AddPhoto(navController: NavController) {
     val image = painterResource(R.drawable.back_button)
     val photographImage = painterResource(R.drawable.photograph_image)
     val humanProfile = painterResource(R.drawable.human_profile)
+
+    val screenWidth = LocalConfiguration.current.screenWidthDp.dp
 
     // Bottom Sheet
     if (showBottomSheet) {
@@ -788,10 +891,6 @@ fun AddPhoto(navController: NavController) {
             IconButton(
                 onClick = { navController.popBackStack() },
                 modifier = Modifier.padding(top = 46.dp, start = 16.dp),
-//                colors = topAppBarColors(
-//                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-//                    titleContentColor = MaterialTheme.colorScheme.primary,
-//                ),
             ) {
                 Icon(
                     painter = image,
@@ -805,8 +904,6 @@ fun AddPhoto(navController: NavController) {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding),
-//            .background(color = Color.White),
-//                .padding(16.dp),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -817,11 +914,8 @@ fun AddPhoto(navController: NavController) {
             ) {
                 Text(
                     text = "Add a photo",
-                    style = TextStyle(
-                        color = Color.Black,
-                        fontSize = 34.sp,
-                        fontWeight = FontWeight.Bold
-                    )
+                    style = MaterialTheme.typography.headlineLarge.copy(color = Color.Black),
+                    modifier = Modifier.widthIn(max = minOf(500.dp, screenWidth * 0.8f))
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Image(
@@ -852,7 +946,7 @@ fun AddPhoto(navController: NavController) {
                 navController = navController
             )
 
-//            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             // Maybe Later Button
             WhiteButtonWithStroke(
