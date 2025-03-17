@@ -34,20 +34,20 @@ data class TransactionItem(val icon: Int, val title: String, val subtitle: Strin
 fun TransactionHistoryScreen(navController: NavController) {
     val transactions = mapOf(
         "Today" to listOf(
-            TransactionItem(R.drawable.money, "Income", "Freelance project", "+$450", true),
-            TransactionItem(R.drawable.car, "Service", "Regular service", "-$150", false)
+            TransactionItem(R.drawable.money, "Income", "Freelance project", "+KSH450", true),
+            TransactionItem(R.drawable.car, "Service", "Regular service", "-KSH150", false)
         ),
         "Yesterday" to listOf(
-            TransactionItem(R.drawable.gym, "Gym", "Gym membership", "-$100", false),
-            TransactionItem(R.drawable.therapy, "Therapy", "Therapy session", "-$50", false),
-            TransactionItem(R.drawable.live_sound, "Live sound gig", "Took a live sound gig", "+$250", true)
+            TransactionItem(R.drawable.gym, "Gym", "Gym membership", "-KSH100", false),
+            TransactionItem(R.drawable.therapy, "Therapy", "Therapy session", "-KSH50", false),
+            TransactionItem(R.drawable.live_sound, "Live sound gig", "Took a live sound gig", "+KSH250", true)
         ),
         "Oct 27th" to listOf(
-            TransactionItem(R.drawable.bug_image, "Bug bounty program", "Took a bug bounty gig", "+$550", true),
-            TransactionItem(R.drawable.drinks_image, "Drinks", "Bought drinks", "-$25", false),
-            TransactionItem(R.drawable.gym, "Gym", "Gym membership", "-$100", false),
-            TransactionItem(R.drawable.therapy, "Therapy", "Therapy session", "-$50", false),
-            TransactionItem(R.drawable.live_sound, "Live sound gig", "Took a live sound gig", "+$250", true)
+            TransactionItem(R.drawable.bug_image, "Bug bounty program", "Took a bug bounty gig", "+KSH550", true),
+            TransactionItem(R.drawable.drinks_image, "Drinks", "Bought drinks", "-KSH25", false),
+            TransactionItem(R.drawable.gym, "Gym", "Gym membership", "-KSH100", false),
+            TransactionItem(R.drawable.therapy, "Therapy", "Therapy session", "-KSH50", false),
+            TransactionItem(R.drawable.live_sound, "Live sound gig", "Took a live sound gig", "+KSH250", true)
         )
     )
 

@@ -35,26 +35,28 @@ fun getExpenseById(expenseId: String?): Expense? {
     return expensesList.find { it.id == expenseId }
 }
 
+
 @Composable
 fun ExpensesScreen(navController: NavController) {
     val filters = listOf("This week", "This month", "This year")
     var selectedFilter by remember { mutableStateOf(filters[0]) }
 
     val todayExpenses = listOf(
-        ExpenseItem(R.drawable.veggies, "Food", "-KSH15", "13:45"),
-        ExpenseItem(R.drawable.fuel, "Fuel", "-KSH5", "09:30"),
-        ExpenseItem(R.drawable.shop, "Shopping", "-KSH30", "11:15"),
-        ExpenseItem(R.drawable.gym, "Transport", "-KSH12", "07:50"),
-        ExpenseItem(R.drawable.therapy, "Internet", "-KSH20", "18:10")
+        ExpenseItem("1", R.drawable.veggies, "Food", "-KSH15", "13:45"),
+        ExpenseItem("2", R.drawable.fuel, "Fuel", "-KSH5", "09:30"),
+        ExpenseItem("3", R.drawable.shop, "Shopping", "-KSH30", "11:15"),
+        ExpenseItem("4", R.drawable.gym, "Transport", "-KSH12", "07:50"),
+        ExpenseItem("5", R.drawable.therapy, "Internet", "-KSH20", "18:10")
     )
 
     val yesterdayExpenses = listOf(
-        ExpenseItem(R.drawable.salon, "Salon", "-KSH50", "16:00"),
-        ExpenseItem(R.drawable.rent, "Rent", "-KSH400", "12:30"),
-        ExpenseItem(R.drawable.electricity, "Electricity", "-KSH60", "14:45"),
-        ExpenseItem(R.drawable.insurance, "Insurance", "-KSH100", "10:00"),
-        ExpenseItem(R.drawable.groceries, "Entertainment", "-KSH25", "20:20")
+        ExpenseItem("6", R.drawable.salon, "Salon", "-KSH50", "16:00"),
+        ExpenseItem("7", R.drawable.rent, "Rent", "-KSH400", "12:30"),
+        ExpenseItem("8", R.drawable.electricity, "Electricity", "-KSH60", "14:45"),
+        ExpenseItem("9", R.drawable.insurance, "Insurance", "-KSH100", "10:00"),
+        ExpenseItem("10", R.drawable.groceries, "Entertainment", "-KSH25", "20:20")
     )
+
 
 
 
@@ -208,7 +210,7 @@ fun ExpenseRow(expense: ExpenseItem, navController: NavController) {
         Text(expense.amount, fontSize = 16.sp, color = Color.Red)
 
         IconButton(onClick = {
-            navController.navigate("edit-expense-screen/{expenseId}")
+            navController.navigate("edit-expense-screen/${expense.id}")
         }) {
             Image(
                 painter = painterResource(id = R.drawable.edit_image_2),
@@ -216,7 +218,7 @@ fun ExpenseRow(expense: ExpenseItem, navController: NavController) {
                 modifier = Modifier
                     .alpha(0.5f)
                     .size(24.dp)
-                    .clickable { navController.navigate("edit-expense-screen/{expenseId}") }
+                    .clickable { navController.navigate("edit-expense-screen/${expense.id}") }
             )
         }
     }

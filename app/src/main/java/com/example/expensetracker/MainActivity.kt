@@ -95,7 +95,6 @@ class MainActivity : ComponentActivity() {
                    modifier = Modifier.fillMaxSize(),
                    color = MaterialTheme.colorScheme.background
                ){
-
                    // Adjust status bar based on theme
                    window.statusBarColor = if (darkTheme) android.graphics.Color.BLACK else android.graphics.Color.WHITE
                    WindowInsetsControllerCompat(window, window.decorView).isAppearanceLightStatusBars = !darkTheme
@@ -163,6 +162,18 @@ fun MyAppNavigation() {
         composable("analytics-screen"){
             AnalyticsScreen(navController)
         }
+        composable("edit-expense-screen/{expenseId}") { backStackEntry ->
+            val expenseId = backStackEntry.arguments?.getString("expenseId")
+            val expense = getExpenseById(expenseId) // Fetch the actual expense
+
+            if (expense != null) {
+                EditExpenseScreen(navController, expense)
+            } else {
+                Text("Expense not found") // Handle case where ID is invalid
+            }
+        }
+
+
 
         composable("edit-expense-screen/{expenseId}") { backStackEntry ->
             val expenseId = backStackEntry.arguments?.getString("expenseId")
