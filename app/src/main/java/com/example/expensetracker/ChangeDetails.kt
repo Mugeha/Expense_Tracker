@@ -83,7 +83,7 @@ fun ChangeDetailsScreen(navController: NavController) {
         Spacer(modifier = Modifier.height(430.dp))
 
         // Save Button
-        FilledButton(title = "Save", destination = "account-page", navController = navController)
+        FilledButton(title = "Save", onClick = {})
     }
 }
 

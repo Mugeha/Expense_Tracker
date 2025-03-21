@@ -1,8 +1,12 @@
 package com.example.expensetracker
 
 import ProfileScreen
+import android.content.Context
 import android.content.res.Configuration
 import android.os.Bundle
+import android.util.Log
+import android.util.Patterns
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -19,31 +23,25 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.material.icons.Icons
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme.typography
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -53,13 +51,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 //import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
@@ -67,7 +64,6 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 //import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -78,7 +74,6 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-//import androidx.lint.kotlin.metadata.Visibility
 import com.example.expensetracker.ui.theme.ExpenseTrackerTheme
 import com.example.walletapp.TransactionHistoryScreen
 
@@ -291,9 +286,31 @@ fun WhiteButton(onClick: () -> Unit = {}, title: String) {
 
 @Composable
 fun TeaserScreen(navController: NavController) {
+    val context = LocalContext.current // ✅ Get context inside the composable
     val image = painterResource(R.drawable.background_image)
     val configuration = LocalConfiguration.current
     val isPortrait = configuration.orientation == Configuration.ORIENTATION_PORTRAIT
+
+    // ✅ Get stored token from SharedPreferences
+    val sharedPreferences = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+    val savedToken = sharedPreferences.getString("auth_token", null)
+
+    LaunchedEffect(Unit) {
+        val currentTime = System.currentTimeMillis()
+        val tokenExpiry = sharedPreferences.getLong("token_expiry", 0)
+
+        if (savedToken != null && currentTime < tokenExpiry) {
+            Log.d("TeaserScreen", "Token valid, navigating to home screen")
+            navController.popBackStack()
+            navController.navigate("home-screen")
+        } else {
+            Log.d("TeaserScreen", "Token expired or not found, navigating to login")
+            sharedPreferences.edit().remove("auth_token").remove("token_expiry").apply() // 🔥 Clear expired token
+            navController.navigate("login-screen")
+        }
+    }
+
+
 
     Column(
         modifier = Modifier.fillMaxSize()
@@ -301,19 +318,19 @@ fun TeaserScreen(navController: NavController) {
         // Top Image Section
         Image(
             painter = image,
-            contentDescription = null,
+            contentDescription = "Teaser Background",
             contentScale = ContentScale.Crop,
             alignment = Alignment.Center,
             modifier = Modifier
                 .fillMaxWidth()
-                .weight(if (isPortrait) 0.6f else 0.4f) // Less height in landscape
+                .weight(if (isPortrait) 0.6f else 0.4f)
         )
 
         // Bottom Section
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .weight(if (isPortrait) 0.4f else 0.6f) // More space for text in landscape
+                .weight(if (isPortrait) 0.4f else 0.6f)
                 .background(colorResource(id = R.color.HomeColor))
                 .padding(start = 20.dp, top = if (isPortrait) 40.dp else 20.dp, end = 20.dp),
             verticalArrangement = Arrangement.Top,
@@ -322,7 +339,7 @@ fun TeaserScreen(navController: NavController) {
             // Title
             Text(
                 text = "Always Track\nYour Expenses",
-                style = MaterialTheme.typography.titleLarge.copy( // 🔥 Uses your theme
+                style = MaterialTheme.typography.titleLarge.copy(
                     fontWeight = FontWeight.Bold,
                     color = Color.White
                 )
@@ -332,8 +349,8 @@ fun TeaserScreen(navController: NavController) {
 
             // Subtitle
             Text(
-                text = "Now you can track expenses records on\nyour phone",
-                style = MaterialTheme.typography.bodyLarge.copy(color = Color.White) // 🔥 Uses your theme
+                text = "Now you can track expense records\non your phone",
+                style = MaterialTheme.typography.bodyLarge.copy(color = Color.White)
             )
 
             Spacer(modifier = Modifier.height(if (isPortrait) 30.dp else 20.dp))
@@ -344,7 +361,14 @@ fun TeaserScreen(navController: NavController) {
                 verticalArrangement = Arrangement.Top,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                FilledButton(title = "Get Started", destination = "signup-screen", navController = navController)
+                FilledButton(
+                    title = "Get Started",
+                    onClick = {
+                        Log.d("TeaserScreen", "Navigating to signup screen")
+                        navController.popBackStack() // 🔥 Prevents returning to splash screen
+                        navController.navigate("signup-screen")
+                    }
+                )
                 Spacer(modifier = Modifier.height(16.dp))
                 TextForSigningUpOrLoginIn(navController = navController)
             }
@@ -354,40 +378,37 @@ fun TeaserScreen(navController: NavController) {
 
 
 
+
+
+
 @Composable
-fun FilledButton( navController: NavController,
-                  onClick: () -> Unit = {},
-                  title: String,
-                  destination: String,
-                  enabled: Boolean = true // Add this parameter with a default value
-)
-{
+fun FilledButton(
+    title: String,
+    enabled: Boolean = true, // Keep it for disabling button when needed
+    onClick: () -> Unit // Add this to handle navigation
+) {
     Button(
-onClick = {
-    onClick()// Call any additional onClick logic
-    navController.navigate(destination) // Navigate to the specified destination
-},
+        onClick = onClick, // Calls whatever logic you pass in
         colors = ButtonDefaults.buttonColors(
-            containerColor = Color(0xFF336B40), // Custom green button color
+            containerColor = Color(0xFF336B40),
             contentColor = Color.White,
-            disabledContainerColor = Color(0xFF336B40).copy(alpha = 0.67f) // 67% opacity for disabled button
+            disabledContainerColor = Color(0xFF336B40).copy(alpha = 0.67f)
         ),
-
-                enabled = enabled, // Use the enabled parameter
-
-        shape = RoundedCornerShape(70.dp), // Optional: rounded corners
+        enabled = enabled,
+        shape = RoundedCornerShape(70.dp),
         modifier = Modifier
             .height(65.dp)
-            .fillMaxWidth(0.9f) // Flexible width
+            .fillMaxWidth(0.9f)
     ) {
         Text(
             text = title,
-            color = Color.White, // Explicitly setting text color to white
+            color = Color.White,
             fontSize = 18.sp,
             fontWeight = FontWeight.Bold
         )
     }
 }
+
 
 
 //@Preview(showBackground = true)
@@ -439,7 +460,12 @@ fun SignUpScreenPreview() {
 }
 
 @Composable
-fun SignupScreen(navController: NavController) {
+fun SignupScreen(
+    navController: NavController,
+    viewModel: SignupViewModel = viewModel() // ✅ Correct usage
+) {
+
+    val context = LocalContext.current
     val screenWidth = LocalConfiguration.current.screenWidthDp.dp
     val screenHeight = LocalConfiguration.current.screenHeightDp.dp
     val isLandscape = screenWidth > screenHeight
@@ -449,16 +475,22 @@ fun SignupScreen(navController: NavController) {
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
 
-    // Track if the user has interacted with each field
     var usernameTouched by remember { mutableStateOf(false) }
     var emailTouched by remember { mutableStateOf(false) }
     var passwordTouched by remember { mutableStateOf(false) }
     var confirmPasswordTouched by remember { mutableStateOf(false) }
 
-    val isUsernameInvalid = usernameTouched && username.isEmpty()
-    val isEmailInvalid = emailTouched && (email.isEmpty() || !android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches())
+    val isUsernameInvalid = usernameTouched && (username.isEmpty() || username.length < 3)
+    val isEmailInvalid = emailTouched && (email.isEmpty() || !Patterns.EMAIL_ADDRESS.matcher(email).matches())
     val isPasswordInvalid = passwordTouched && (password.isEmpty() || password.length < 6)
     val isConfirmPasswordInvalid = confirmPasswordTouched && (confirmPassword.isEmpty() || confirmPassword != password)
+
+    // Observe signup result
+    LaunchedEffect(viewModel.signupResult) {
+        viewModel.signupResult?.let {
+            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -474,122 +506,37 @@ fun SignupScreen(navController: NavController) {
                 .padding(horizontal = 20.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(
-                text = "Sign Up",
-                style = MaterialTheme.typography.headlineLarge.copy(color = Color.White),
-                modifier = Modifier.padding(bottom = 16.dp)
-            )
+            Text("Sign Up", style = MaterialTheme.typography.headlineLarge.copy(color = Color.White), modifier = Modifier.padding(bottom = 16.dp))
+            Text("Please fill in your details to proceed", style = MaterialTheme.typography.bodyLarge.copy(color = Color.White.copy(alpha = 0.8f)))
 
-            Text(
-                text = "Please fill in your details to proceed",
-                style = MaterialTheme.typography.bodyLarge.copy(color = Color.White.copy(alpha = 0.8f))
-            )
+            Column(modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                CustomUnderlineTextField(value = username, onValueChange = { username = it; usernameTouched = true }, placeholder = "Username", isError = isUsernameInvalid)
+                if (isUsernameInvalid) Text("Username must be at least 3 characters", color = Color.Red, modifier = Modifier.padding(top = 4.dp))
 
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                // Username Field
-                CustomUnderlineTextField(
-                    value = username,
-                    onValueChange = {
-                        username = it
-                        usernameTouched = true
-                    },
-                    placeholder = "Username",
-                    isError = isUsernameInvalid
-                )
-                if (isUsernameInvalid) {
-                    Text(
-                        text = "Username cannot be empty",
-                        color = Color.Red,
-                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                        modifier = Modifier.padding(top = 4.dp)
-                    )
-                }
+                CustomUnderlineTextField(value = email, onValueChange = { email = it; emailTouched = true }, placeholder = "Email", isError = isEmailInvalid)
+                if (isEmailInvalid) Text("Enter a valid email", color = Color.Red, modifier = Modifier.padding(top = 4.dp))
 
-                // Email Field
-                CustomUnderlineTextField(
-                    value = email,
-                    onValueChange = {
-                        email = it
-                        emailTouched = true
-                    },
-                    placeholder = "Email",
-                    isError = isEmailInvalid
-                )
-                if (isEmailInvalid) {
-                    Text(
-                        text = "Enter a valid email",
-                        color = Color.Red,
-                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                        modifier = Modifier.padding(top = 4.dp)
-                    )
-                }
+                CustomUnderlineTextField(value = password, onValueChange = { password = it; passwordTouched = true }, placeholder = "Password", isPassword = true, isError = isPasswordInvalid)
+                if (isPasswordInvalid) Text("Password must be at least 6 characters", color = Color.Red, modifier = Modifier.padding(top = 4.dp))
 
-                // Password Field
-                CustomUnderlineTextField(
-                    value = password,
-                    onValueChange = {
-                        password = it
-                        passwordTouched = true
-                    },
-                    placeholder = "Password",
-                    isPassword = true,
-                    isError = isPasswordInvalid
-                )
-                if (isPasswordInvalid) {
-                    Text(
-                        text = "Password must be at least 6 characters",
-                        color = Color.Red,
-                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                        modifier = Modifier.padding(top = 4.dp)
-                    )
-                }
-
-                // Confirm Password Field
-                CustomUnderlineTextField(
-                    value = confirmPassword,
-                    onValueChange = {
-                        confirmPassword = it
-                        confirmPasswordTouched = true
-                    },
-                    placeholder = "Confirm Password",
-                    isPassword = true,
-                    isError = isConfirmPasswordInvalid
-                )
-                if (isConfirmPasswordInvalid) {
-                    Text(
-                        text = "Passwords do not match",
-                        color = Color.Red,
-                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                        modifier = Modifier.padding(top = 4.dp)
-                    )
-                }
+                CustomUnderlineTextField(value = confirmPassword, onValueChange = { confirmPassword = it; confirmPasswordTouched = true }, placeholder = "Confirm Password", isPassword = true, isError = isConfirmPasswordInvalid)
+                if (isConfirmPasswordInvalid) Text("Passwords do not match", color = Color.Red, modifier = Modifier.padding(top = 4.dp))
             }
 
-            Column(
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                // ✅ Disable button when invalid
+            Column(verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
                 FilledButton(
-                    title = "Continue",
-                    destination = "addphoto-screen",
-                    navController = navController,
-                    enabled = !(isUsernameInvalid || isEmailInvalid || isPasswordInvalid || isConfirmPasswordInvalid),
-                    onClick = {
-                        navController.navigate("addphoto-screen")
-                    }
+                    title = if (viewModel.isLoading) "Signing Up..." else "Continue",
+                    enabled = !viewModel.isLoading && !isUsernameInvalid && !isEmailInvalid && !isPasswordInvalid && !isConfirmPasswordInvalid,
+                    onClick = { viewModel.signUp(email, username, password, context, navController) }
                 )
+
                 Spacer(modifier = Modifier.height(16.dp))
                 TextForSigningUpOrLoginIn(navController = navController)
             }
         }
     }
 }
+
 
 
 
@@ -609,33 +556,28 @@ fun AddPhotoPreview() {
 }
 
 @Composable
-fun LoginScreen(navController: NavController) {
-    var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
+fun LoginScreen(navController: NavController, viewModel: LoginViewModel = viewModel()) {
+    val context = LocalContext.current
 
-    // Track if the user has interacted with each field
-    var emailTouched by remember { mutableStateOf(false) }
-    var passwordTouched by remember { mutableStateOf(false) }
+    val loginResult by remember { mutableStateOf(viewModel.loginResult) }
+
+    LaunchedEffect(loginResult) {
+        loginResult?.let {
+            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+        }
+    }
+
+
 
     val image = painterResource(R.drawable.waving_hand)
-    val context = LocalConfiguration.current
-    val screenWidth = context.screenWidthDp.dp
-
-    val isEmailInvalid = emailTouched && (email.isEmpty() || !android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches())
-    val isPasswordInvalid = passwordTouched && (password.isEmpty() || password.length < 6)
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(colorResource(id = R.color.HomeColor))
-            .padding(
-                start = 30.dp,
-                end = 30.dp,
-                top = 100.dp,
-                bottom = 50.dp
-            ),
+            .padding(30.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Top
+        verticalArrangement = Arrangement.Center
     ) {
         Row(
             horizontalArrangement = Arrangement.Center,
@@ -644,8 +586,7 @@ fun LoginScreen(navController: NavController) {
         ) {
             Text(
                 text = "Welcome Back!",
-                style = MaterialTheme.typography.headlineLarge.copy(color = Color.White),
-                modifier = Modifier.padding(top = 4.dp)
+                style = MaterialTheme.typography.headlineLarge.copy(color = Color.White)
             )
             Spacer(modifier = Modifier.width(8.dp))
             Image(
@@ -663,21 +604,21 @@ fun LoginScreen(navController: NavController) {
 
         Column(
             modifier = Modifier
-                .widthIn(max = minOf(500.dp, screenWidth * 0.8f))
+                .fillMaxWidth()
                 .padding(vertical = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // Email Field
             CustomUnderlineTextField(
-                value = email,
+                value = viewModel.email,
                 onValueChange = {
-                    email = it
-                    emailTouched = true // Mark email as touched
+                    viewModel.email = it
+                    viewModel.emailTouched = true
                 },
                 placeholder = "Email",
-                isError = isEmailInvalid
+                isError = viewModel.isEmailInvalid
             )
-            if (isEmailInvalid) {
+            if (viewModel.isEmailInvalid) {
                 Text(
                     text = "Enter a valid email",
                     color = Color.Red,
@@ -688,16 +629,16 @@ fun LoginScreen(navController: NavController) {
 
             // Password Field
             CustomUnderlineTextField(
-                value = password,
+                value = viewModel.password,
                 onValueChange = {
-                    password = it
-                    passwordTouched = true // Mark password as touched
+                    viewModel.password = it
+                    viewModel.passwordTouched = true
                 },
                 placeholder = "Password",
                 isPassword = true,
-                isError = isPasswordInvalid
+                isError = viewModel.isPasswordInvalid
             )
-            if (isPasswordInvalid) {
+            if (viewModel.isPasswordInvalid) {
                 Text(
                     text = "Password must be at least 6 characters",
                     color = Color.Red,
@@ -712,9 +653,7 @@ fun LoginScreen(navController: NavController) {
             style = MaterialTheme.typography.labelSmall.copy(color = colorResource(id = R.color.ForgotPasswordColor)),
             modifier = Modifier
                 .align(Alignment.End)
-                .clickable {
-                    navController.navigate("forgot-pwd")
-                }
+                .clickable { navController.navigate("forgot-pwd") }
         )
 
         Column(
@@ -722,23 +661,21 @@ fun LoginScreen(navController: NavController) {
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.padding(top = 40.dp)
         ) {
-            // ✅ Disable button when invalid
+            // Login Button
             FilledButton(
-                title = "Log in",
-                destination = "home-screen",
-                navController = navController,
-                enabled = !(isEmailInvalid || isPasswordInvalid),
-                onClick = {
-                    navController.navigate("home-screen")
-                }
+                title = if (viewModel.isLoading) "Logging in..." else "Log in",
+                enabled = !(viewModel.isEmailInvalid || viewModel.isPasswordInvalid) && !viewModel.isLoading,
+                onClick = { viewModel.performLogin(context, navController) }
             )
             Spacer(modifier = Modifier.height(10.dp))
             WhiteButton(title = "Log in with Google")
         }
+
         Spacer(modifier = Modifier.height(16.dp))
         TextForSignup(navController = navController)
     }
 }
+
 
 
 
@@ -953,8 +890,6 @@ fun AddPhoto(navController: NavController) {
             FilledButton(
                 onClick = { showBottomSheet = true },
                 title = "Choose a Photo",
-                destination = "addphoto-screen",
-                navController = navController
             )
 
             Spacer(modifier = Modifier.height(16.dp))

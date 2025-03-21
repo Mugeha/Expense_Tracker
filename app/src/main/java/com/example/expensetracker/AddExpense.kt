@@ -244,9 +244,7 @@ fun AddExpenseScreen(navController: NavController) {
         Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
             FilledButton(
                 title = "Save",
-                destination = "expenses-screen",
-                navController = navController
-            )
+onClick = {}            )
             if (!isFormValid) {
                 Box(
                     modifier = Modifier

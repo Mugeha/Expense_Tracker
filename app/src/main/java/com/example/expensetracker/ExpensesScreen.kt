@@ -6,10 +6,9 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -26,12 +25,23 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
+import com.example.expensetracker.BottomNavigationBar
+import com.example.expensetracker.R
 
 fun getExpenseById(expenseId: String?): Expense? {
     val expensesList = listOf(
         Expense("1", "15", "Food", "Lunch at Cafe", "23/02/2025", "Card"),
-        Expense("2", "50", "Transport", "Bus fare", "24/02/2025", "Cash")
-    )
+        Expense("4", "12", "Gym", "Paid for gym leg day", "24/02/2025", "Cash"),
+        Expense("2", "5", "Fuel", "Fuel for trip", "25/02/2025", "Cash"),
+        Expense("3", "30", "Shopping", "Got bread and milk", "25/02/2025", "Card"),
+        Expense("5", "20", "Therapy", "Went for therapy session", "26/02/2025", "Cash"),
+        Expense("6", "50", "Salon", "Made my hair", "27/02/2025", "Cash"),
+        Expense("7", "400", "Rent", "Paid rent", "28/02/2025", "Cash"),
+        Expense("9", "100", "Insurance", "Paid for insurance", "29/02/2025", "Card"),
+        Expense("8", "400", "Electricity", "Paid for power", "28/02/2025", "Cash"),
+        Expense("10", "25", "Groceries", "Got fruits", "01/03/2025", "Cash"),
+
+        )
     return expensesList.find { it.id == expenseId }
 }
 
@@ -45,7 +55,7 @@ fun ExpensesScreen(navController: NavController) {
         ExpenseItem("1", R.drawable.veggies, "Food", "-KSH15", "13:45"),
         ExpenseItem("2", R.drawable.fuel, "Fuel", "-KSH5", "09:30"),
         ExpenseItem("3", R.drawable.shop, "Shopping", "-KSH30", "11:15"),
-        ExpenseItem("4", R.drawable.gym, "Transport", "-KSH12", "07:50"),
+        ExpenseItem("4", R.drawable.gym, "Gym", "-KSH12", "07:50"),
         ExpenseItem("5", R.drawable.therapy, "Internet", "-KSH20", "18:10")
     )
 
@@ -59,114 +69,124 @@ fun ExpensesScreen(navController: NavController) {
 
 
 
+    val listState = rememberLazyListState()
+    var bottomBarVisible by remember { mutableStateOf(true) }
 
+    LaunchedEffect(listState.firstVisibleItemIndex) {
+        bottomBarVisible = listState.firstVisibleItemIndex == 0
+    }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(top = 42.dp, start = 16.dp, end = 16.dp)
-    ) {
-        // Top App Bar
-        Row(
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = { navController.popBackStack() }) {
-                Icon(
-                    painter = painterResource(id = R.drawable.back_button),
-                    contentDescription = "Back"
-                )
+    Scaffold(
+        bottomBar = {
+            if (bottomBarVisible) {
+                BottomNavigationBar(navController, selectedItem = "Expenses")
             }
-            Text(
-                text = "Expenses",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center,
-                modifier = Modifier
-                    .fillMaxWidth()
-            )
         }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Pie Chart Card
-        Card(
+    ) { paddingValues ->
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .height(200.dp),
-            shape = RoundedCornerShape(10.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(top = 16.dp, start = 16.dp, end = 16.dp)
         ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        brush = Brush.verticalGradient(
-                            colors = listOf(
-                                colorResource(id = R.color.gradient_start),
-                                colorResource(id = R.color.gradient_end)
-                            )
-                        )
-                    )
-                    .padding(16.dp)
+            Row(
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(
+                IconButton(onClick = { navController.popBackStack() }) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.back_button),
+                        contentDescription = "Back"
+                    )
+                }
+                Text(
+                    text = "Expenses",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(200.dp),
+                shape = RoundedCornerShape(10.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            brush = Brush.verticalGradient(
+                                colors = listOf(
+                                    colorResource(id = R.color.gradient_start),
+                                    colorResource(id = R.color.gradient_end)
+                                )
+                            )
+                        )
+                        .padding(16.dp)
                 ) {
-                    Image(
-                        painter = painterResource(id = R.drawable.pie_chart),
-                        contentDescription = "Pie Chart",
-                        modifier = Modifier.size(150.dp)
-                    )
-
-                    Spacer(modifier = Modifier.width(58.dp))
-
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                        horizontalAlignment = Alignment.Start
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        CategoryLabel("Rent", Color(0xFFFFC107))
-                        CategoryLabel("Electricity", Color(0xFF5a8299))
-                        CategoryLabel("Insurance", Color(0xFF4CAF50))
-                        CategoryLabel("Fuel", Color(0xFFF44336))
+                        Image(
+                            painter = painterResource(id = R.drawable.pie_chart),
+                            contentDescription = "Pie Chart",
+                            modifier = Modifier.size(150.dp)
+                        )
+
+                        Spacer(modifier = Modifier.width(58.dp))
+
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            horizontalAlignment = Alignment.Start
+                        ) {
+                            CategoryLabel("Rent", Color(0xFFFFC107))
+                            CategoryLabel("Electricity", Color(0xFF5a8299))
+                            CategoryLabel("Insurance", Color(0xFF4CAF50))
+                            CategoryLabel("Fuel", Color(0xFFF44336))
+                        }
                     }
                 }
             }
-        }
 
-        Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-        // Filter Row
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly
-        ) {
-            filters.forEach { filter ->
-                FilterButton(filter, filter == selectedFilter) {
-                    selectedFilter = filter
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                filters.forEach { filter ->
+                    FilterButton(filter, filter == selectedFilter) {
+                        selectedFilter = filter
+                    }
                 }
             }
-        }
 
-        Spacer(modifier = Modifier.height(26.dp))
+            Spacer(modifier = Modifier.height(26.dp))
 
-        // Expenses List
-        LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            item {
-                Text("Today", fontSize = 18.sp, fontWeight = FontWeight.Bold)
-            }
-            items(todayExpenses) { expense ->
-                ExpenseRow(expense, navController = navController)
-            }
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp), state = listState) {
+                item {
+                    Text("Today", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                }
+                items(todayExpenses) { expense ->
+                    ExpenseRow(expense, navController = navController)
+                }
 
-            item {
-                Spacer(modifier = Modifier.height(20.dp))
-                Text("Yesterday", fontSize = 18.sp, fontWeight = FontWeight.Bold)
-            }
-            items(yesterdayExpenses) { expense ->
-                ExpenseRow(expense, navController = navController)
+                item {
+                    Spacer(modifier = Modifier.height(20.dp))
+                    Text("Yesterday", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                }
+                items(yesterdayExpenses) { expense ->
+                    ExpenseRow(expense, navController = navController)
+                }
             }
         }
     }

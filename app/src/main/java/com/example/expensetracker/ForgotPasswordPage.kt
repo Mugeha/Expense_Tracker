@@ -120,8 +120,6 @@ fun ForgotPasswordPage(navController: NavController) {
             // ✅ Disable button when invalid
             FilledButton(
                 title = "Send Reset Link",
-                destination = "reset-pwd",
-                navController = navController,
                 enabled = isValidEmail,
                 onClick = { navController.navigate("reset-pwd") }
             )
@@ -249,8 +247,6 @@ fun ResetPassword(navController: NavController) {
         ) {
             FilledButton(
                 title = "Reset Password",
-                destination = "login-screen",
-                navController = navController,
                 enabled = isFormValid, // ✅ Button is disabled if invalid
                 onClick = {
                     navController.navigate("login-screen")
@@ -361,8 +357,7 @@ fun OTPResetPage(navController: NavController) {
         ) {
             FilledButton(
                 title = "Send me the code",
-                destination = "enter-code",
-                navController = navController,
+                onClick = {},
                 enabled = isFormValid // ✅ Button only enabled when valid
             )
 

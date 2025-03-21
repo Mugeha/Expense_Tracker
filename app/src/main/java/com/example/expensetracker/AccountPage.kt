@@ -6,24 +6,32 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.ViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.example.expensetracker.FilledButton
+import com.example.expensetracker.ProfileViewModel
 import com.example.expensetracker.R
 
 @Composable
-fun ProfileScreen(navController: NavController) {
+fun ProfileScreen(navController: NavController, viewModel: ProfileViewModel = viewModel()
+) {
+    val context = LocalContext.current
+    var isLoggingOut by remember { mutableStateOf(false) }
+
     var isDarkMode by remember { mutableStateOf(false) }
 
     Column(
@@ -31,15 +39,15 @@ fun ProfileScreen(navController: NavController) {
             .fillMaxSize()
             .background(Color.White)
             .padding(top = 28.dp, start = 16.dp, end = 16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally // Centers content
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Back Button (Aligned Left)
+        // Back Button
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Image(
-                painter = painterResource(id = R.drawable.back_button), // Replace with your image
+                painter = painterResource(id = R.drawable.back_button),
                 contentDescription = "Back",
                 modifier = Modifier
                     .size(64.dp).padding(top = 26.dp)
@@ -49,33 +57,31 @@ fun ProfileScreen(navController: NavController) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Profile Picture - Centered
-        // Profile Picture - Centered
+        // Profile Picture
         Box(
-            modifier = Modifier.size(150.dp), // Ensure Box size matches the profile image
+            modifier = Modifier.size(150.dp),
             contentAlignment = Alignment.Center
         ) {
             Image(
-                painter = painterResource(id = R.drawable.human_profile), // Replace with your image
+                painter = painterResource(id = R.drawable.human_profile),
                 contentDescription = "Profile Image",
                 modifier = Modifier
                     .size(150.dp)
-                    .clip(CircleShape), // Ensures a circular profile picture
+                    .clip(CircleShape),
                 contentScale = ContentScale.Crop
             )
 
             Image(
-                painter = painterResource(id = R.drawable.camera_pic_removebg_preview), // Replace with your edit icon
-                contentDescription = "Edit Image Profile",
+                painter = painterResource(id = R.drawable.camera_pic_removebg_preview),
+                contentDescription = "Edit Profile",
                 modifier = Modifier
                     .size(48.dp)
-                    .align(Alignment.BottomEnd) // Moves it to the bottom-right
-                    .offset(x = (-10).dp, y = (-12).dp) // Fine-tunes position slightly inside the profile image
+                    .align(Alignment.BottomEnd)
+                    .offset(x = (-10).dp, y = (-12).dp)
                     .clickable { /* Handle edit profile */ }
-                    .alpha(0.9f) // Set opacity to 80% (0.8)
+                    .alpha(0.9f)
             )
         }
-
 
         // Profile Name
         Text(
@@ -88,26 +94,21 @@ fun ProfileScreen(navController: NavController) {
         Spacer(modifier = Modifier.height(16.dp))
 
         // Profile Sections
-        Row(
-            horizontalArrangement = Arrangement.SpaceBetween,
-        ) {
+        Row(horizontalArrangement = Arrangement.SpaceBetween) {
             ProfileSection("Personal Info") {
-                           Spacer(modifier = Modifier.height(6.dp))
-                Row (horizontalArrangement = Arrangement.spacedBy(6.dp)){
+                Spacer(modifier = Modifier.height(6.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(text = "Edit", color = Color.Black)
-
                     Image(
                         painter = painterResource(R.drawable.edit_image_2),
                         contentDescription = "Edit Button",
                         modifier = Modifier.size(15.dp)
                     )
                 }
-                ProfileItem(R.drawable.human_profile, "Name", "Mugeha Jackline", modifier = Modifier.size(48.dp)) // Override image size here)
+                ProfileItem(R.drawable.human_profile, "Name", "Mugeha Jackline")
                 ProfileItem(R.drawable.mail_2, "Email", "mugehajacky@gmail.com")
             }
         }
-
-
 
         ProfileSection("Account Info") {
             ProfileItem(R.drawable.settings_black, "Security", "Change Password")
@@ -127,9 +128,17 @@ fun ProfileScreen(navController: NavController) {
         Spacer(modifier = Modifier.height(16.dp))
 
         // Logout Button
-        FilledButton(title = "Log out", destination = "login-screen", navController = rememberNavController())
+        FilledButton(
+            title = if (isLoggingOut) "Logging out..." else "Log out",
+            enabled = !isLoggingOut,
+            onClick = {
+                isLoggingOut = true
+                viewModel.logout(navController)
+            }
+        )
     }
 }
+
 
 @Composable
 fun ProfileSection(title: String, content: @Composable () -> Unit) {
