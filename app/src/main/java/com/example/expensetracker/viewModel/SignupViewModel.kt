@@ -25,13 +25,15 @@ class SignupViewModel(private val authRepository: AuthRepository) : ViewModel() 
         Log.d("SignupViewModel", "Attempting signup with email: $email, username: $username")
 
         viewModelScope.launch {
+            Log.d("SignupViewModel", "Starting signup request...")
             val result = authRepository.signUp(email, username, password)
 
             result.onSuccess { token ->
-                Log.d("SignupViewModel", "Signup successful! Token: $token")
+                Log.d("SignupViewModel", "Signup successful. Token: $token")
+
                 signupResult = "Signup Successful"
 
-                // 🔥 Navigate to home and clear backstack
+                // Ensure navigation happens after successful signup
                 navController.popBackStack()
                 navController.navigate("home-screen")
             }.onFailure { error ->
@@ -41,5 +43,6 @@ class SignupViewModel(private val authRepository: AuthRepository) : ViewModel() 
 
             isLoading = false
         }
+
     }
 }

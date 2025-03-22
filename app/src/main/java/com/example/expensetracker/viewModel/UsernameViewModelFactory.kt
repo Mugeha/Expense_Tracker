@@ -5,13 +5,13 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.example.expensetracker.repository.AuthRepository
 
-class ProfileViewModelFactory(private val context: Context) : ViewModelProvider.Factory {
-
+class UsernameViewModelFactory(private val context: Context) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        if (modelClass.isAssignableFrom(ProfileViewModel::class.java)) {
+        if (modelClass.isAssignableFrom(UsernameViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            return ProfileViewModel(AuthRepository(context)) as T
+            return UsernameViewModel(AuthRepository(context)) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }
 }
+

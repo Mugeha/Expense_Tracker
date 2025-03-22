@@ -1,5 +1,6 @@
 package com.example.expensetracker
 
+import android.content.Context
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -24,13 +25,18 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.example.expensetracker.viewModel.UsernameViewModel
+import com.example.expensetracker.viewModel.UsernameViewModelFactory
 
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(navController: NavController, username: String) {
-    var username by remember { mutableStateOf("Loading...") }
+fun HomeScreen(navController: NavController, context: Context) {
+    val viewModel: UsernameViewModel = viewModel(factory = UsernameViewModelFactory(context))
+
+    val username by viewModel.username.collectAsState()
 
     var expanded by remember { mutableStateOf(false) }
     var balanceVisible by remember { mutableStateOf(false) }
@@ -233,11 +239,11 @@ fun HomeScreen(navController: NavController, username: String) {
 }
 
 
-@Preview(showBackground = true)
-@Composable
-fun HomeScreenPreview() {
-    HomeScreen(navController = NavController(LocalContext.current), username = "Mugeha Jackline")
-}
+//@Preview(showBackground = true)
+//@Composable
+//fun HomeScreenPreview() {
+//    HomeScreen(navController = NavController(LocalContext.current))
+//}
 
 @Composable
 fun DashboardButton(

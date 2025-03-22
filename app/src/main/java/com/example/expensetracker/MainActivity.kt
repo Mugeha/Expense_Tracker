@@ -144,7 +144,7 @@ fun MyAppNavigation() {
         }
 
         composable("home-screen") {
-            HomeScreen(navController)
+            HomeScreen(navController, context = LocalContext.current)
         }
         composable("add-expense-screen") {
             AddExpenseScreen(navController)

@@ -17,7 +17,7 @@ class AuthRepository(private val context: Context) {
         return withContext(Dispatchers.IO) {
             try {
                 val response: LoginResponse = RetrofitClient.instance.login(LoginRequest(email, password))
-                Log.d("AuthRepository", "Login Successful: ${response.token}")
+                Log.d("AuthRepository", "✅ Login Successful: ${response.token}")
 
                 response.token?.let {
                     saveAuthTokens(response.token, response.refreshToken, response.expiresIn)
@@ -25,10 +25,10 @@ class AuthRepository(private val context: Context) {
                 } ?: Result.failure(Exception("Invalid login response"))
             } catch (e: HttpException) {
                 val errorMessage = parseErrorMessage(e)
-                Log.e("AuthRepository", "Login failed: $errorMessage")
+                Log.e("AuthRepository", "❌ Login failed: $errorMessage")
                 Result.failure(Exception(errorMessage))
             } catch (e: Exception) {
-                Log.e("AuthRepository", "Network error: ${e.message}")
+                Log.e("AuthRepository", "❌ Network error: ${e.message}")
                 Result.failure(Exception("Network error. Check your internet connection."))
             }
         }
@@ -38,46 +38,100 @@ class AuthRepository(private val context: Context) {
     suspend fun signUp(email: String, username: String, password: String): Result<String> {
         return withContext(Dispatchers.IO) {
             try {
+                Log.d("AuthRepository", "🚀 Starting Signup Request")
                 val response: SignupResponse = RetrofitClient.instance.register(SignupRequest(email, username, password))
-                Log.d("AuthRepository", "Signup Successful: ${response.token}")
+                Log.d("AuthRepository", "✅ Signup Response: $response")
 
-                response.token?.let {
-                    response.refreshToken?.let { it1 ->
-                        saveAuthTokens(response.token,
-                            it1, response.expiresIn)
+                response.token?.let { token ->
+                    response.refreshToken?.let { refreshToken ->
+                        saveAuthTokens(token, refreshToken, response.expiresIn)
+                        Log.d("AuthRepository", "🔐 Tokens Saved Successfully")
                     }
-                    Result.success(it)
-                } ?: Result.failure(Exception("Invalid signup response"))
+                    return@withContext Result.success(token)
+                }
+
+                Log.e("AuthRepository", "❌ Invalid Signup Response - Missing Token")
+                Result.failure(Exception("Invalid signup response"))
             } catch (e: HttpException) {
                 val errorMessage = parseErrorMessage(e)
-                Log.e("AuthRepository", "Signup failed: $errorMessage")
+                Log.e("AuthRepository", "❌ Signup HttpException: $errorMessage")
                 Result.failure(Exception(errorMessage))
             } catch (e: Exception) {
-                Log.e("AuthRepository", "Network error: ${e.message}")
+                Log.e("AuthRepository", "❌ Signup Exception: ${e.message}")
                 Result.failure(Exception("Network error. Check your internet connection."))
             }
         }
     }
 
-    // ✅ Save Tokens and Expiry Time
+
     fun saveAuthTokens(accessToken: String, refreshToken: String, expiresIn: Long) {
         val editor = sharedPreferences.edit()
+
+        // Ensure minimum expiry of 1 hour (3600 seconds) if expiresIn is too short
+        val safeExpiresIn = if (expiresIn < 3600) 3600 else expiresIn
+
+        // Store expiry time in milliseconds
+        val expiryTime = System.currentTimeMillis() + (safeExpiresIn * 1000)
+
         editor.putString("auth_token", accessToken)
         editor.putString("refresh_token", refreshToken)
-        editor.putLong("token_expiry", System.currentTimeMillis() + expiresIn * 1000) // Convert seconds to ms
+        editor.putLong("token_expiry", expiryTime)
         editor.apply()
+
+        Log.d("AuthRepository", "✅ Tokens saved: $accessToken, Safe Expiry (ms): $expiryTime, expiresIn (s): $safeExpiresIn")
     }
 
-    // ✅ Check and Refresh Token if Needed
+
+
     suspend fun getValidToken(): String? {
         val accessToken = sharedPreferences.getString("auth_token", null)
         val refreshToken = sharedPreferences.getString("refresh_token", null)
         val expiryTime = sharedPreferences.getLong("token_expiry", 0)
 
+        val currentTime = System.currentTimeMillis()
+
+        // Extend buffer to 10 seconds for clock drift
+        val bufferTime = 10000L
+
+        val timeDiff = expiryTime - currentTime
+        Log.d("AuthRepository", "🕒 Token Check - Current: $currentTime, Expiry: $expiryTime, Diff: $timeDiff ms")
+
         return when {
-            accessToken == null || refreshToken == null -> null // No token found, force logout
-            System.currentTimeMillis() < expiryTime -> accessToken // Token is still valid
-            else -> refreshAccessToken(refreshToken) // Token expired, try to refresh
+            accessToken == null || refreshToken == null -> {
+                Log.e("AuthRepository", "❌ Missing token(s)")
+                null
+            }
+            timeDiff > bufferTime -> accessToken // ✅ Valid token
+            else -> {
+                Log.w("AuthRepository", "🔄 Token expired - Attempting refresh")
+                refreshAccessToken(refreshToken)
+            }
+        }
+    }
+
+
+
+
+    // ✅ Fetch Username
+    suspend fun fetchUsername(): Result<String> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val token = getValidToken() ?: return@withContext Result.failure(Exception("No valid token found"))
+                val authHeader = "Bearer $token"
+                val response = RetrofitClient.instance.autoLogin(authHeader)
+
+                response.username.let {
+                    Log.d("AuthRepository", "👤 Fetched Username: $it")
+                    Result.success(it)
+                }
+            } catch (e: HttpException) {
+                val errorMessage = parseErrorMessage(e)
+                Log.e("AuthRepository", "❌ Fetch username failed: $errorMessage")
+                Result.failure(Exception(errorMessage))
+            } catch (e: Exception) {
+                Log.e("AuthRepository", "❌ Network error: ${e.message}")
+                Result.failure(Exception("Network error. Check your internet connection."))
+            }
         }
     }
 
@@ -88,12 +142,12 @@ class AuthRepository(private val context: Context) {
                 val response = RetrofitClient.instance.refreshToken(RefreshTokenRequest(refreshToken))
                 response.token?.let {
                     saveAuthTokens(it, response.refreshToken, response.expiresIn)
-                    Log.d("AuthRepository", "Token refreshed successfully")
+                    Log.d("AuthRepository", "🔄 Token refreshed successfully")
                     it
                 }
             } catch (e: Exception) {
-                Log.e("AuthRepository", "Token refresh failed: ${e.message}")
-                logout() // Clear tokens if refresh fails
+                Log.e("AuthRepository", "❌ Token refresh failed: ${e.message}")
+                logout() // Clears tokens if refresh fails
                 null
             }
         }
@@ -105,9 +159,9 @@ class AuthRepository(private val context: Context) {
         return JSONObject(errorBody ?: "{}").optString("message", "An error occurred. Try again.")
     }
 
-    // ✅ Logout Function
+    // ✅ Logout Function (Clear Tokens)
     fun logout() {
         sharedPreferences.edit().clear().apply() // Clears all user data
-        Log.d("AuthRepository", "User logged out, preferences cleared")
+        Log.d("AuthRepository", "🚪 User logged out, preferences cleared")
     }
 }
