@@ -61,7 +61,7 @@ fun BottomNavigationBar(navController: NavController, selectedItem: String, modi
                             "Home" -> navController.navigate("home-screen")
                             "Expenses" -> navController.navigate("expenses-screen")
                             "History" -> navController.navigate("transaction-history")
-                            "Account" -> navController.navigate("my-account-page")
+                            "Account" -> navController.navigate("account-page")
                         }
                     }
                 ) {

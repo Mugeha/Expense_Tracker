@@ -1,8 +1,6 @@
-package com.example.expensetracker
+package com.example.expensetracker.viewModel
 
-import android.content.Context
 import android.util.Log
-import android.widget.Toast
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -24,14 +22,15 @@ class LoginViewModel(private val authRepository: AuthRepository) : ViewModel() {
     var isLoading by mutableStateOf(false)
         private set
 
-    // Validate email and password
+    // ✅ Validate email and password
     val isEmailInvalid: Boolean
         get() = emailTouched && !android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()
 
     val isPasswordInvalid: Boolean
         get() = passwordTouched && password.length < 6
 
-    fun performLogin(context: Context, navController: NavController) {
+    // ✅ Perform Login with Token Handling
+    fun performLogin(navController: NavController) {
         if (isLoading) return
         isLoading = true
         Log.d("LoginViewModel", "Attempting login with email: $email")
@@ -40,10 +39,11 @@ class LoginViewModel(private val authRepository: AuthRepository) : ViewModel() {
             val result = authRepository.login(email, password)
 
             result.onSuccess { token ->
-                authRepository.saveAuthToken(context, token)
                 Log.d("LoginViewModel", "Login successful! Token: $token")
-
                 loginResult = "Login Successful"
+
+                // 🔥 Navigate to home and clear backstack
+                navController.popBackStack()
                 navController.navigate("home-screen")
             }.onFailure { error ->
                 Log.e("LoginViewModel", "Login failed: ${error.message}")
@@ -53,5 +53,4 @@ class LoginViewModel(private val authRepository: AuthRepository) : ViewModel() {
             isLoading = false
         }
     }
-
 }

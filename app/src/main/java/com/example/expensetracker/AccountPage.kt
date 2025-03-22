@@ -1,3 +1,4 @@
+import android.content.Context
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -13,23 +14,24 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.ViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.example.expensetracker.FilledButton
-import com.example.expensetracker.ProfileViewModel
+import com.example.expensetracker.viewModel.ProfileViewModel
 import com.example.expensetracker.R
+import com.example.expensetracker.viewModel.ProfileViewModelFactory
 
 @Composable
-fun ProfileScreen(navController: NavController, viewModel: ProfileViewModel = viewModel()
+fun ProfileScreen(navController: NavController, context: Context
 ) {
-    val context = LocalContext.current
+//    val context = LocalContext.current
+    val viewModel: ProfileViewModel = viewModel(factory = ProfileViewModelFactory(context))
+
     var isLoggingOut by remember { mutableStateOf(false) }
 
     var isDarkMode by remember { mutableStateOf(false) }
@@ -189,9 +191,9 @@ fun ProfileItem(
 }
 
 
-@Preview(showBackground = true)
-@Composable
-fun ProfileScreenPreview() {
-    val navController = rememberNavController()
-    ProfileScreen(navController = navController)
-}
+//@Preview(showBackground = true)
+//@Composable
+//fun ProfileScreenPreview() {
+//    val navController = rememberNavController()
+//    ProfileScreen(navController = navController)
+//}

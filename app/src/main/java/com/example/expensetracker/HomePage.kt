@@ -29,7 +29,9 @@ import androidx.navigation.NavController
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(navController: NavController) {
+fun HomeScreen(navController: NavController, username: String) {
+    var username by remember { mutableStateOf("Loading...") }
+
     var expanded by remember { mutableStateOf(false) }
     var balanceVisible by remember { mutableStateOf(false) }
     var selectedPeriod by remember { mutableStateOf("This Week") }
@@ -81,7 +83,7 @@ fun HomeScreen(navController: NavController) {
                         }
                 )
                 Text(
-                    text = "Welcome, \nMugeha Jackline",
+                    text = "Welcome, \n$username", // Dynamic username here
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Normal,
                     fontSize = 16.sp
@@ -234,7 +236,7 @@ fun HomeScreen(navController: NavController) {
 @Preview(showBackground = true)
 @Composable
 fun HomeScreenPreview() {
-    HomeScreen(navController = NavController(LocalContext.current))
+    HomeScreen(navController = NavController(LocalContext.current), username = "Mugeha Jackline")
 }
 
 @Composable

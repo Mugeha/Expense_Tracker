@@ -4,7 +4,6 @@ import ProfileScreen
 import android.content.Context
 import android.content.res.Configuration
 import android.os.Bundle
-import android.util.Log
 import android.util.Patterns
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -75,6 +74,12 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.expensetracker.ui.theme.ExpenseTrackerTheme
+import com.example.expensetracker.viewModel.LoginViewModel
+import com.example.expensetracker.viewModel.LoginViewModelFactory
+import com.example.expensetracker.viewModel.SignupViewModel
+import com.example.expensetracker.viewModel.SignupViewModelFactory
+import com.example.expensetracker.viewModel.TeaserViewModel
+import com.example.expensetracker.viewModel.TeaserViewModelFactory
 import com.example.walletapp.TransactionHistoryScreen
 
 class MainActivity : ComponentActivity() {
@@ -108,13 +113,13 @@ fun MyAppNavigation() {
 
     NavHost(navController = navController, startDestination = "splash-screen") {
         composable("splash-screen") {
-            TeaserScreen(navController)
+            TeaserScreen(navController, context = LocalContext.current)
         }
         composable("signup-screen") {
-            SignupScreen(navController)
+            SignupScreen(navController, context = LocalContext.current)
         }
         composable("login-screen") {
-            LoginScreen(navController)
+            LoginScreen(navController, context = LocalContext.current)
         }
         composable("addphoto-screen") {
             AddPhoto(navController)
@@ -124,7 +129,7 @@ fun MyAppNavigation() {
             ForgotPasswordPage(navController)
         }
         composable("account-page"){
-            ProfileScreen(navController)
+            ProfileScreen(navController, context = LocalContext.current)
         }
         composable("reset-pwd")
         {
@@ -177,10 +182,10 @@ fun MyAppNavigation() {
                 EditExpenseScreen(navController, expense)
             }
         }
-        composable("my-account-page")
-        {
-            ProfileScreen(navController)
-        }
+//        composable("my-account-page")
+//        {
+//            ProfileScreen(navController)0
+//        }
         composable("change-details-screen"){
             ChangeDetailsScreen(navController)
         }
@@ -191,13 +196,13 @@ fun MyAppNavigation() {
 }
 
 
-@Preview(showBackground = true)
-@Composable
-fun HomePagePreview() {
-    ExpenseTrackerTheme {
-        TeaserScreen(navController = rememberNavController())
-    }
-}
+//@Preview(showBackground = true)
+//@Composable
+//fun HomePagePreview() {
+//    ExpenseTrackerTheme {
+//        TeaserScreen(navController = rememberNavController())
+//    }
+//}
 
 @Composable
 fun WhiteButtonWithDarkText(onClick: () -> Unit = {}, title: String) {
@@ -285,32 +290,21 @@ fun WhiteButton(onClick: () -> Unit = {}, title: String) {
 }
 
 @Composable
-fun TeaserScreen(navController: NavController) {
-    val context = LocalContext.current // ✅ Get context inside the composable
-    val image = painterResource(R.drawable.background_image)
-    val configuration = LocalConfiguration.current
-    val isPortrait = configuration.orientation == Configuration.ORIENTATION_PORTRAIT
+fun TeaserScreen(navController: NavController, context: Context) {
+    val viewModel: TeaserViewModel = viewModel(factory = TeaserViewModelFactory(context))
+    val navigateTo by viewModel.navigateTo.collectAsState()
 
-    // ✅ Get stored token from SharedPreferences
-    val sharedPreferences = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
-    val savedToken = sharedPreferences.getString("auth_token", null)
-
-    LaunchedEffect(Unit) {
-        val currentTime = System.currentTimeMillis()
-        val tokenExpiry = sharedPreferences.getLong("token_expiry", 0)
-
-        if (savedToken != null && currentTime < tokenExpiry) {
-            Log.d("TeaserScreen", "Token valid, navigating to home screen")
-            navController.popBackStack()
-            navController.navigate("home-screen")
-        } else {
-            Log.d("TeaserScreen", "Token expired or not found, navigating to login")
-            sharedPreferences.edit().remove("auth_token").remove("token_expiry").apply() // 🔥 Clear expired token
-            navController.navigate("login-screen")
+    // ✅ Navigate based on token state
+    LaunchedEffect(navigateTo) {
+        navigateTo?.let {
+            navController.popBackStack() // Prevent returning to teaser screen
+            navController.navigate(it)
         }
     }
 
-
+    val image = painterResource(R.drawable.background_image)
+    val configuration = LocalConfiguration.current
+    val isPortrait = configuration.orientation == Configuration.ORIENTATION_PORTRAIT
 
     Column(
         modifier = Modifier.fillMaxSize()
@@ -364,8 +358,7 @@ fun TeaserScreen(navController: NavController) {
                 FilledButton(
                     title = "Get Started",
                     onClick = {
-                        Log.d("TeaserScreen", "Navigating to signup screen")
-                        navController.popBackStack() // 🔥 Prevents returning to splash screen
+                        navController.popBackStack()
                         navController.navigate("signup-screen")
                     }
                 )
@@ -375,6 +368,8 @@ fun TeaserScreen(navController: NavController) {
         }
     }
 }
+
+
 
 
 
@@ -451,21 +446,23 @@ fun TextForSigningUpOrLoginIn(navController: NavController){
 }
 
 
-@Preview (showBackground = true)
-@Composable
-fun SignUpScreenPreview() {
-    ExpenseTrackerTheme {
-        SignupScreen(navController = rememberNavController())
-    }
-}
+//@Preview (showBackground = true)
+//@Composable
+//fun SignUpScreenPreview() {
+//    ExpenseTrackerTheme {
+//        SignupScreen(navController = rememberNavController())
+//    }
+//}
 
 @Composable
 fun SignupScreen(
     navController: NavController,
-    viewModel: SignupViewModel = viewModel() // ✅ Correct usage
+    context: Context
 ) {
+    val viewModel: SignupViewModel = viewModel(factory = SignupViewModelFactory(context))
 
-    val context = LocalContext.current
+
+//    val context = LocalContext.current
     val screenWidth = LocalConfiguration.current.screenWidthDp.dp
     val screenHeight = LocalConfiguration.current.screenHeightDp.dp
     val isLandscape = screenWidth > screenHeight
@@ -527,7 +524,7 @@ fun SignupScreen(
                 FilledButton(
                     title = if (viewModel.isLoading) "Signing Up..." else "Continue",
                     enabled = !viewModel.isLoading && !isUsernameInvalid && !isEmailInvalid && !isPasswordInvalid && !isConfirmPasswordInvalid,
-                    onClick = { viewModel.signUp(email, username, password, context, navController) }
+                    onClick = { viewModel.signUp(email, username, password, navController) }
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -540,13 +537,13 @@ fun SignupScreen(
 
 
 
-@Preview (showBackground = true)
-@Composable
-fun LoginScreenPreview() {
-    ExpenseTrackerTheme {
-        LoginScreen(navController = rememberNavController())
-    }
-}
+//@Preview (showBackground = true)
+//@Composable
+//fun LoginScreenPreview() {
+//    ExpenseTrackerTheme {
+//        LoginScreen(navController = rememberNavController())
+//    }
+//}
 @Preview (showBackground = true)
 @Composable
 fun AddPhotoPreview() {
@@ -556,8 +553,10 @@ fun AddPhotoPreview() {
 }
 
 @Composable
-fun LoginScreen(navController: NavController, viewModel: LoginViewModel = viewModel()) {
-    val context = LocalContext.current
+fun LoginScreen(navController: NavController, context: Context) {
+    val viewModel: LoginViewModel = viewModel(factory = LoginViewModelFactory(context))
+
+//    val context = LocalContext.current
 
     val loginResult by remember { mutableStateOf(viewModel.loginResult) }
 
@@ -665,7 +664,7 @@ fun LoginScreen(navController: NavController, viewModel: LoginViewModel = viewMo
             FilledButton(
                 title = if (viewModel.isLoading) "Logging in..." else "Log in",
                 enabled = !(viewModel.isEmailInvalid || viewModel.isPasswordInvalid) && !viewModel.isLoading,
-                onClick = { viewModel.performLogin(context, navController) }
+                onClick = { viewModel.performLogin(navController) }
             )
             Spacer(modifier = Modifier.height(10.dp))
             WhiteButton(title = "Log in with Google")

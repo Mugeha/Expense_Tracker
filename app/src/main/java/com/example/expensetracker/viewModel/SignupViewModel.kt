@@ -1,8 +1,6 @@
-package com.example.expensetracker
+package com.example.expensetracker.viewModel
 
-import android.content.Context
 import android.util.Log
-import android.widget.Toast
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -20,7 +18,8 @@ class SignupViewModel(private val authRepository: AuthRepository) : ViewModel() 
     var signupResult by mutableStateOf<String?>(null)
         private set
 
-    fun signUp(email: String, username: String, password: String, context: Context, navController: NavController) {
+    // ✅ SignUp Method: Handles Signup and Navigation
+    fun signUp(email: String, username: String, password: String, navController: NavController) {
         if (isLoading) return
         isLoading = true
         Log.d("SignupViewModel", "Attempting signup with email: $email, username: $username")
@@ -29,10 +28,11 @@ class SignupViewModel(private val authRepository: AuthRepository) : ViewModel() 
             val result = authRepository.signUp(email, username, password)
 
             result.onSuccess { token ->
-                authRepository.saveAuthToken(context, token)
                 Log.d("SignupViewModel", "Signup successful! Token: $token")
-
                 signupResult = "Signup Successful"
+
+                // 🔥 Navigate to home and clear backstack
+                navController.popBackStack()
                 navController.navigate("home-screen")
             }.onFailure { error ->
                 Log.e("SignupViewModel", "Signup failed: ${error.message}")
@@ -43,4 +43,3 @@ class SignupViewModel(private val authRepository: AuthRepository) : ViewModel() 
         }
     }
 }
-

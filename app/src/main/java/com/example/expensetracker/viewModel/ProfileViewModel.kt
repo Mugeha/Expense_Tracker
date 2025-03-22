@@ -1,4 +1,4 @@
-package com.example.expensetracker
+package com.example.expensetracker.viewModel
 
 import androidx.lifecycle.ViewModel
 import androidx.navigation.NavController
