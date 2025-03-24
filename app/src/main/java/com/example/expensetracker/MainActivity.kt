@@ -7,8 +7,10 @@ import android.os.Bundle
 import android.util.Patterns
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.foundation.Image
@@ -44,6 +46,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -76,6 +79,7 @@ import androidx.navigation.compose.rememberNavController
 import com.example.expensetracker.ui.theme.ExpenseTrackerTheme
 import com.example.expensetracker.viewModel.LoginViewModel
 import com.example.expensetracker.viewModel.LoginViewModelFactory
+import com.example.expensetracker.viewModel.PhotoViewModel
 import com.example.expensetracker.viewModel.SignupViewModel
 import com.example.expensetracker.viewModel.SignupViewModelFactory
 import com.example.expensetracker.viewModel.TeaserViewModel
@@ -122,14 +126,18 @@ fun MyAppNavigation() {
             LoginScreen(navController, context = LocalContext.current)
         }
         composable("addphoto-screen") {
-            AddPhoto(navController)
+            val photoViewModel: PhotoViewModel = viewModel()
+            AddPhoto(navController, photoViewModel)
         }
+
         composable("forgot-pwd")
         {
             ForgotPasswordPage(navController)
         }
         composable("account-page"){
-            ProfileScreen(navController, context = LocalContext.current)
+            val photoViewModel: PhotoViewModel = viewModel()
+
+            ProfileScreen(navController, context = LocalContext.current, photoViewModel)
         }
         composable("reset-pwd")
         {
@@ -144,8 +152,10 @@ fun MyAppNavigation() {
         }
 
         composable("home-screen") {
-            HomeScreen(navController, context = LocalContext.current)
+            val photoViewModel: PhotoViewModel = viewModel()
+            HomeScreen(navController, context = LocalContext.current, photoViewModel)
         }
+
         composable("add-expense-screen") {
             AddExpenseScreen(navController)
         }
@@ -174,7 +184,6 @@ fun MyAppNavigation() {
         }
 
 
-
         composable("edit-expense-screen/{expenseId}") { backStackEntry ->
             val expenseId = backStackEntry.arguments?.getString("expenseId")
             val expense = getExpenseById(expenseId) // Fetch expense based on ID
@@ -182,10 +191,7 @@ fun MyAppNavigation() {
                 EditExpenseScreen(navController, expense)
             }
         }
-//        composable("my-account-page")
-//        {
-//            ProfileScreen(navController)0
-//        }
+
         composable("change-details-screen"){
             ChangeDetailsScreen(navController)
         }
@@ -544,13 +550,7 @@ fun SignupScreen(
 //        LoginScreen(navController = rememberNavController())
 //    }
 //}
-@Preview (showBackground = true)
-@Composable
-fun AddPhotoPreview() {
-    ExpenseTrackerTheme {
-        AddPhoto(navController = rememberNavController())
-    }
-}
+
 
 @Composable
 fun LoginScreen(navController: NavController, context: Context) {
@@ -790,17 +790,35 @@ fun CustomUnderlineTextField(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddPhoto(navController: NavController) {
+fun AddPhoto(navController: NavController, photoViewModel: PhotoViewModel) {
     val bottomSheetState = rememberModalBottomSheetState()
     var showBottomSheet by remember { mutableStateOf(false) }
+    val context = LocalContext.current
 
-    val image = painterResource(R.drawable.back_button)
-    val photographImage = painterResource(R.drawable.photograph_image)
-    val humanProfile = painterResource(R.drawable.human_profile)
+    // Observe image URI from PhotoViewModel
+    val imageUri by photoViewModel.profileImageUri.observeAsState()
 
-    val screenWidth = LocalConfiguration.current.screenWidthDp.dp
+    // Load the saved image on screen start
+    LaunchedEffect(Unit) {
+        photoViewModel.loadProfileImage(context) // ✅ Corrected reference
+    }
 
-    // Bottom Sheet
+    // Take Photo Handler
+    val takePhotoLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
+        if (success) {
+            imageUri?.let { photoViewModel.saveProfileImage(context, it) }
+            navController.navigate("home-screen")
+        }
+    }
+
+    // Gallery Selection Handler
+    val pickImageLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        uri?.let {
+            photoViewModel.saveProfileImage(context, it)
+            navController.navigate("home-screen")
+        }
+    }
+
     if (showBottomSheet) {
         ModalBottomSheet(
             onDismissRequest = { showBottomSheet = false },
@@ -815,7 +833,8 @@ fun AddPhoto(navController: NavController) {
                 WhiteButtonWithDarkText(
                     onClick = {
                         showBottomSheet = false
-                        // Handle Take Photo action
+                        val newUri = photoViewModel.createImageUri(context)
+                        takePhotoLauncher.launch(newUri)
                     },
                     title = "Take Photo"
                 )
@@ -823,7 +842,7 @@ fun AddPhoto(navController: NavController) {
                 WhiteButtonWithDarkText(
                     onClick = {
                         showBottomSheet = false
-                        // Handle Gallery Selection action
+                        pickImageLauncher.launch("image/*")
                     },
                     title = "Add from Gallery"
                 )
@@ -831,7 +850,6 @@ fun AddPhoto(navController: NavController) {
         }
     }
 
-    // Main Screen Content
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
@@ -840,7 +858,7 @@ fun AddPhoto(navController: NavController) {
                 modifier = Modifier.padding(top = 46.dp, start = 16.dp),
             ) {
                 Icon(
-                    painter = image,
+                    painter = painterResource(R.drawable.back_button),
                     contentDescription = "Back",
                     tint = Color.Black
                 )
@@ -854,53 +872,42 @@ fun AddPhoto(navController: NavController) {
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Title with Camera Icon
-            Row(
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "Add a photo",
-                    style = MaterialTheme.typography.headlineLarge.copy(color = Color.Black),
-                    modifier = Modifier.widthIn(max = minOf(500.dp, screenWidth * 0.8f))
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Image(
-                    painter = photographImage,
-                    contentDescription = "Camera Icon",
-                    modifier = Modifier.size(24.dp)
-                )
-            }
+            Text(
+                text = "Add a photo",
+                style = MaterialTheme.typography.headlineLarge.copy(color = Color.Black),
+            )
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-            // Profile Placeholder Image
+            // Display Profile Image or Placeholder
             Image(
-                painter = humanProfile,
+                painter =  painterResource(R.drawable.human_profile),
                 contentDescription = "Profile Picture",
                 modifier = Modifier
                     .size(140.dp)
                     .clip(CircleShape)
             )
 
-            Spacer(modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.height(42.dp))
 
-            // Button to Open Bottom Sheet
             FilledButton(
                 onClick = { showBottomSheet = true },
                 title = "Choose a Photo",
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
-            // Maybe Later Button
             WhiteButtonWithStroke(
-                onClick = { navController.navigate("home-screen") },
+                onClick = { navController.navigate("home-screen"){
+                    popUpTo("addphoto-screen") { inclusive = true }
+                } },
                 title = "Maybe Later"
             )
         }
     }
 }
+
+
 
 
 

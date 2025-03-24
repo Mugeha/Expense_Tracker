@@ -1,4 +1,8 @@
 import android.content.Context
+import android.graphics.Bitmap
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -7,6 +11,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -21,20 +26,52 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
+import coil.compose.AsyncImage
 import com.example.expensetracker.FilledButton
 import com.example.expensetracker.viewModel.ProfileViewModel
 import com.example.expensetracker.R
+import com.example.expensetracker.viewModel.PhotoViewModel
 import com.example.expensetracker.viewModel.ProfileViewModelFactory
+import com.example.expensetracker.viewModel.UsernameViewModel
+import com.example.expensetracker.viewModel.UsernameViewModelFactory
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProfileScreen(navController: NavController, context: Context
+fun ProfileScreen(
+    navController: NavController,
+    context: Context,
+    photoViewModel: PhotoViewModel
 ) {
-//    val context = LocalContext.current
-    val viewModel: ProfileViewModel = viewModel(factory = ProfileViewModelFactory(context))
+    val profileViewModel: ProfileViewModel = viewModel(factory = ProfileViewModelFactory(context))
+    val usernameViewModel: UsernameViewModel = viewModel(factory = UsernameViewModelFactory(context))
+    val username by usernameViewModel.username.collectAsState()
+
+    val profileImageUri by photoViewModel.profileImageUri.observeAsState()
 
     var isLoggingOut by remember { mutableStateOf(false) }
-
     var isDarkMode by remember { mutableStateOf(false) }
+
+    // State for Bottom Sheet
+    val sheetState = rememberModalBottomSheetState()
+    var showSheet by remember { mutableStateOf(false) }
+
+    // Gallery launcher (no changes needed)
+    val galleryLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let { photoViewModel.updateProfileImage(context, it) }
+    }
+
+// Camera launcher: Convert bitmap to Uri
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicturePreview()
+    ) { bitmap: Bitmap? ->
+        bitmap?.let {
+            val uri = photoViewModel.bitmapToUri(context, it)
+            photoViewModel.updateProfileImage(context, uri)
+        }
+    }
+
 
     Column(
         modifier = Modifier
@@ -52,7 +89,8 @@ fun ProfileScreen(navController: NavController, context: Context
                 painter = painterResource(id = R.drawable.back_button),
                 contentDescription = "Back",
                 modifier = Modifier
-                    .size(64.dp).padding(top = 26.dp)
+                    .size(64.dp)
+                    .padding(top = 26.dp)
                     .clickable { navController.popBackStack() }
             )
         }
@@ -64,13 +102,14 @@ fun ProfileScreen(navController: NavController, context: Context
             modifier = Modifier.size(150.dp),
             contentAlignment = Alignment.Center
         ) {
-            Image(
-                painter = painterResource(id = R.drawable.human_profile),
+            AsyncImage(
+                model = profileImageUri ?: R.drawable.human_profile,
                 contentDescription = "Profile Image",
+                contentScale = ContentScale.Crop,
                 modifier = Modifier
-                    .size(150.dp)
-                    .clip(CircleShape),
-                contentScale = ContentScale.Crop
+                    .size(150.dp) // Ensure the image fits the Box size
+                    .clip(CircleShape)
+                    .clickable { navController.navigate("account-page") }
             )
 
             Image(
@@ -80,14 +119,14 @@ fun ProfileScreen(navController: NavController, context: Context
                     .size(48.dp)
                     .align(Alignment.BottomEnd)
                     .offset(x = (-10).dp, y = (-12).dp)
-                    .clickable { /* Handle edit profile */ }
+                    .clickable { showSheet = true } // Open bottom sheet
                     .alpha(0.9f)
             )
         }
 
         // Profile Name
         Text(
-            text = "Mugeha Jackline",
+            text = username ?: "Loading...",
             fontSize = 18.sp,
             fontWeight = FontWeight.Bold,
             color = Color.Black
@@ -96,20 +135,18 @@ fun ProfileScreen(navController: NavController, context: Context
         Spacer(modifier = Modifier.height(16.dp))
 
         // Profile Sections
-        Row(horizontalArrangement = Arrangement.SpaceBetween) {
-            ProfileSection("Personal Info") {
-                Spacer(modifier = Modifier.height(6.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text(text = "Edit", color = Color.Black)
-                    Image(
-                        painter = painterResource(R.drawable.edit_image_2),
-                        contentDescription = "Edit Button",
-                        modifier = Modifier.size(15.dp)
-                    )
-                }
-                ProfileItem(R.drawable.human_profile, "Name", "Mugeha Jackline")
-                ProfileItem(R.drawable.mail_2, "Email", "mugehajacky@gmail.com")
+        ProfileSection("Personal Info") {
+            Spacer(modifier = Modifier.height(6.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(text = "Edit", color = Color.Black)
+                Image(
+                    painter = painterResource(R.drawable.edit_image_2),
+                    contentDescription = "Edit Button",
+                    modifier = Modifier.size(15.dp)
+                )
             }
+            ProfileItem(R.drawable.human_profile, "Name", username ?: "Loading...")
+            ProfileItem(R.drawable.mail_2, "Email", "mugehajacky@gmail.com")
         }
 
         ProfileSection("Account Info") {
@@ -135,11 +172,49 @@ fun ProfileScreen(navController: NavController, context: Context
             enabled = !isLoggingOut,
             onClick = {
                 isLoggingOut = true
-                viewModel.logout(navController)
+                profileViewModel.logout(navController)
             }
         )
+
+        // Bottom Sheet: Show Camera & Gallery Options
+        if (showSheet) {
+            ModalBottomSheet(
+                onDismissRequest = { showSheet = false },
+                sheetState = sheetState
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = "Change Profile Picture",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "📷 Take Photo",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                cameraLauncher.launch(null)
+                                showSheet = false
+                            }
+                            .padding(12.dp)
+                    )
+                    Text(
+                        text = "🖼️ Choose from Gallery",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                galleryLauncher.launch("image/*")
+                                showSheet = false
+                            }
+                            .padding(12.dp)
+                    )
+                }
+            }
+        }
     }
 }
+
 
 
 @Composable

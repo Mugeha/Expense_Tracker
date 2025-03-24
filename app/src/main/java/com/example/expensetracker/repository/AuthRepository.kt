@@ -42,13 +42,13 @@ class AuthRepository(private val context: Context) {
                 val response: SignupResponse = RetrofitClient.instance.register(SignupRequest(email, username, password))
                 Log.d("AuthRepository", "✅ Signup Response: $response")
 
-                response.token?.let { token ->
-                    response.refreshToken?.let { refreshToken ->
-                        saveAuthTokens(token, refreshToken, response.expiresIn)
-                        Log.d("AuthRepository", "🔐 Tokens Saved Successfully")
-                    }
-                    return@withContext Result.success(token)
+                if (!response.token.isNullOrEmpty() && !response.refreshToken.isNullOrEmpty()) {
+                    saveAuthTokens(response.token, response.refreshToken, response.expiresIn)
+                    Log.d("AuthRepository", "🔐 Tokens Saved Successfully")
                 }
+
+                return@withContext Result.success(response.message) // Continue even if token is null
+
 
                 Log.e("AuthRepository", "❌ Invalid Signup Response - Missing Token")
                 Result.failure(Exception("Invalid signup response"))
@@ -134,6 +134,33 @@ class AuthRepository(private val context: Context) {
             }
         }
     }
+
+
+    // ✅ Fetch Email
+    suspend fun fetchEmail(): Result<String> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val token = getValidToken() ?: return@withContext Result.failure(Exception("No valid token found"))
+                val authHeader = "Bearer $token"
+                val response = RetrofitClient.instance.autoLogin(authHeader)
+
+                response.email.let {
+                    Log.d("AuthRepository", "📧 Fetched Email: $it")
+                    Result.success(it)
+                }
+            } catch (e: HttpException) {
+                val errorMessage = parseErrorMessage(e)
+                Log.e("AuthRepository", "❌ Fetch email failed: $errorMessage")
+                Result.failure(Exception(errorMessage))
+            } catch (e: Exception) {
+                Log.e("AuthRepository", "❌ Network error: ${e.message}")
+                Result.failure(Exception("Network error. Check your internet connection."))
+            }
+        }
+    }
+
+
+
 
     // ✅ Refresh Access Token Using Refresh Token
     private suspend fun refreshAccessToken(refreshToken: String): String? {

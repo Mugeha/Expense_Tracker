@@ -4,13 +4,16 @@ import android.content.Context
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import coil.compose.AsyncImage
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -27,13 +30,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.example.expensetracker.viewModel.PhotoViewModel
 import com.example.expensetracker.viewModel.UsernameViewModel
 import com.example.expensetracker.viewModel.UsernameViewModelFactory
 
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(navController: NavController, context: Context) {
+fun HomeScreen(navController: NavController, context: Context, photoViewModel: PhotoViewModel) {
     val viewModel: UsernameViewModel = viewModel(factory = UsernameViewModelFactory(context))
 
     val username by viewModel.username.collectAsState()
@@ -41,24 +45,26 @@ fun HomeScreen(navController: NavController, context: Context) {
     var expanded by remember { mutableStateOf(false) }
     var balanceVisible by remember { mutableStateOf(false) }
     var selectedPeriod by remember { mutableStateOf("This Week") }
-    val image = painterResource(id = R.drawable.human_profile)
 
+    // Observe image URI from PhotoViewModel
+    val profileImageUri by photoViewModel.profileImageUri.observeAsState()
 
-// State to track scroll offset
+    // Load the profile image once when the screen is launched
+    LaunchedEffect(Unit) {
+        photoViewModel.loadProfileImage(context)
+    }
+
+    // Scroll and BottomBar state
     val scrollState = rememberScrollState()
     var bottomBarVisible by remember { mutableStateOf(true) }
 
-    // Logic to hide/show bottom bar based on scroll direction
+    // Hide/Show bottom bar based on scroll position
     LaunchedEffect(scrollState.value) {
-        if (scrollState.value > 0) {
-            bottomBarVisible = true
-        } else {
-            bottomBarVisible = true
-        }
+        bottomBarVisible = scrollState.value <= 0
     }
 
     Scaffold(
-      bottomBar = {
+        bottomBar = {
             if (bottomBarVisible) {
                 BottomNavigationBar(navController, selectedItem = "Home")
             }
@@ -69,25 +75,23 @@ fun HomeScreen(navController: NavController, context: Context) {
                 .fillMaxSize()
                 .padding(paddingValues)
                 .padding(16.dp)
-//                .background(color = Color.White)
-
         ) {
-            // User Profile
-            Row (
+            // User Profile Section
+            Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.Start
-            ){
-                Image(
-                    painter = image,
-                    contentDescription = null,
+            ) {
+                AsyncImage(
+                    model = profileImageUri ?: R.drawable.human_profile,
+                    contentDescription = "Profile Image",
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
                         .size(54.dp)
-                        .clickable {
-                            // Navigate to another page when the image is clicked
-                            navController.navigate("account-page")
-                        }
+                        .clip(CircleShape)
+                        .clickable { navController.navigate("account-page") }
                 )
+                Spacer(modifier = Modifier.width(8.dp)) // Add space between image and text
+
                 Text(
                     text = "Welcome, \n$username", // Dynamic username here
                     style = MaterialTheme.typography.labelSmall,
@@ -112,8 +116,8 @@ fun HomeScreen(navController: NavController, context: Context) {
                         .background(
                             brush = Brush.verticalGradient(
                                 colors = listOf(
-                                    colorResource(id = R.color.gradient_start), // Top color from colors.xml
-                                    colorResource(id = R.color.gradient_end) // Bottom color from colors.xml
+                                    colorResource(id = R.color.gradient_start),
+                                    colorResource(id = R.color.gradient_end)
                                 )
                             )
                         )
@@ -141,11 +145,11 @@ fun HomeScreen(navController: NavController, context: Context) {
                                 fontWeight = FontWeight.Bold
                             )
 
-                            // Eye Icon Button
                             IconButton(onClick = { balanceVisible = !balanceVisible }) {
                                 Icon(
                                     painter = painterResource(
-                                        id = if (balanceVisible) R.drawable.view_password_3__1_ else R.drawable.view_password_negative
+                                        id = if (balanceVisible) R.drawable.view_password_3__1_
+                                        else R.drawable.view_password_negative
                                     ),
                                     contentDescription = if (balanceVisible) "Hide Balance" else "Show Balance",
                                     tint = Color.White,
@@ -153,15 +157,14 @@ fun HomeScreen(navController: NavController, context: Context) {
                                 )
                             }
                         }
-
-
                     }
                 }
             }
 
             Spacer(modifier = Modifier.height(5.dp))
 
-           DashboardScreen(navController = navController)
+            // Dashboard Section
+            DashboardScreen(navController = navController)
 
             Spacer(modifier = Modifier.height(20.dp))
 
@@ -169,9 +172,9 @@ fun HomeScreen(navController: NavController, context: Context) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(start = 16.dp, end = 26.dp), // Add padding to the start and end
+                    .padding(start = 16.dp, end = 26.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically // Align items vertically
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
                     text = "Summary",
@@ -179,36 +182,34 @@ fun HomeScreen(navController: NavController, context: Context) {
                     fontWeight = FontWeight.Bold
                 )
 
-                // Dropdown with "This Week" text and chevron icon
+                // Dropdown for Period Selection
                 Box(
                     modifier = Modifier
                         .wrapContentSize()
-                        .clickable { expanded = true } // Open dropdown when clicked
+                        .clickable { expanded = true }
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
                             text = selectedPeriod,
-                            color = Color.DarkGray, // Dark grey color for the text
+                            color = Color.DarkGray,
                             fontSize = 16.sp,
-                            modifier = Modifier.padding(end = 4.dp) // Add spacing between text and icon
+                            modifier = Modifier.padding(end = 4.dp)
                         )
                         Image(
                             painter = painterResource(R.drawable.down_chevron),
                             contentDescription = "Dropdown",
-                            modifier = Modifier.size(14.dp) // Adjust size of the chevron icon
+                            modifier = Modifier.size(14.dp)
                         )
                     }
 
-                    // Dropdown menu
-                    androidx.compose.material3.DropdownMenu(
+                    // Dropdown Menu
+                    DropdownMenu(
                         expanded = expanded,
                         onDismissRequest = { expanded = false },
-                        modifier = Modifier.background(Color.White) // White background for the dropdown
+                        modifier = Modifier.background(Color.White)
                     ) {
                         listOf("This Week", "This Month", "This Year").forEach { item ->
-                            androidx.compose.material3.DropdownMenuItem(
+                            DropdownMenuItem(
                                 onClick = {
                                     selectedPeriod = item
                                     expanded = false
@@ -216,14 +217,13 @@ fun HomeScreen(navController: NavController, context: Context) {
                                 text = {
                                     Text(
                                         text = item,
-                                        color = Color.DarkGray, // Dark grey text color
+                                        color = Color.DarkGray,
                                         modifier = Modifier.padding(top = 4.dp, bottom = 4.dp)
                                     )
                                 },
                                 modifier = Modifier
-//                                    .background(Color(0xFFa3a8a4)) // Darker grey background for each item
                                     .padding(horizontal = 14.dp, vertical = 4.dp)
-                                    .border(1.dp, Color.LightGray, RoundedCornerShape(8.dp)) // Light gray border
+                                    .border(1.dp, Color.LightGray, RoundedCornerShape(8.dp))
                             )
                         }
                     }

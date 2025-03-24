@@ -40,14 +40,17 @@ class LoginViewModel(private val authRepository: AuthRepository) : ViewModel() {
 
             result.onSuccess { token ->
                 Log.d("LoginViewModel", "Login successful! Token: $token")
-                loginResult = "Login Successful"
+                loginResult = "Login Successful!"
 
                 // 🔥 Navigate to home and clear backstack
-                navController.popBackStack()
-                navController.navigate("home-screen")
+                navController.navigate("home-screen") {
+                    popUpTo("login-screen") { inclusive = true } // Clears signup from the stack
+                    launchSingleTop = true // Avoids multiple instances
+                }
+
             }.onFailure { error ->
                 Log.e("LoginViewModel", "Login failed: ${error.message}")
-                loginResult = error.message ?: "Login failed. Try again."
+                loginResult = error.message ?: "Login failed. Try again. Either password or email is wrong."
             }
 
             isLoading = false

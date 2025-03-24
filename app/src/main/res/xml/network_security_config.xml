@@ -2,6 +2,6 @@
 <network-security-config>
     <domain-config cleartextTrafficPermitted="true">
         <!-- Allow cleartext traffic for the API -->
-        <domain includeSubdomains="true">192.168.100.63</domain>
+        <domain includeSubdomains="true">192.168.100.240</domain>
     </domain-config>
 </network-security-config>
