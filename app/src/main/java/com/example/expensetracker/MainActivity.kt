@@ -649,7 +649,7 @@ fun LoginScreen(navController: NavController, context: Context) {
 
         Text(
             text = "Forgot password?",
-            style = MaterialTheme.typography.labelSmall.copy(color = colorResource(id = R.color.ForgotPasswordColor)),
+            style = MaterialTheme.typography.labelLarge.copy(color = colorResource(id = R.color.ForgotPasswordColor)),
             modifier = Modifier
                 .align(Alignment.End)
                 .clickable { navController.navigate("forgot-pwd") }
@@ -688,13 +688,13 @@ contentAlignment = Alignment.Center// Centers the content both horizontally and 
     ) {
         Text(
             text = "Don't have an account?",
-            fontSize = 14.sp,
+            style = MaterialTheme.typography.bodyLarge.copy(color = colorResource(id = R.color.ForgotPasswordColor)),
             color = Color.White
         )
         Spacer(modifier = Modifier.width(4.dp))
         Text(
             text = "Signup",
-            fontSize = 14.sp,
+            style = MaterialTheme.typography.labelLarge.copy(color = colorResource(id = R.color.ForgotPasswordColor)),
             color = colorResource(id = R.color.LoginColor), // Replace 'your_color_name' with the name of your color in colors.xml
             fontWeight = FontWeight.Bold,
             modifier = Modifier.clickable {
@@ -865,44 +865,56 @@ fun AddPhoto(navController: NavController, photoViewModel: PhotoViewModel) {
             }
         }
     ) { innerPadding ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
+                .padding(innerPadding)
         ) {
-            Text(
-                text = "Add a photo",
-                style = MaterialTheme.typography.headlineLarge.copy(color = Color.Black),
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Display Profile Image or Placeholder
-            Image(
-                painter =  painterResource(R.drawable.human_profile),
-                contentDescription = "Profile Picture",
+            // Top Center Content
+            Column(
                 modifier = Modifier
-                    .size(140.dp)
-                    .clip(CircleShape)
-            )
+                    .align(Alignment.TopCenter)
+                    .padding(top = 16.dp), // Add some padding from the top if needed
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "Add a photo",
+                    style = MaterialTheme.typography.headlineLarge.copy(color = Color.Black),
+                )
 
-            Spacer(modifier = Modifier.height(42.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
-            FilledButton(
-                onClick = { showBottomSheet = true },
-                title = "Choose a Photo",
-            )
+                // Display Profile Image or Placeholder
+                Image(
+                    painter = painterResource(R.drawable.human_profile),
+                    contentDescription = "Profile Picture",
+                    modifier = Modifier
+                        .size(140.dp)
+                        .clip(CircleShape)
+                )
+            }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            // Bottom Center Content
+            Column(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 16.dp), // Add some padding from the bottom if needed
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                FilledButton(
+                    onClick = { showBottomSheet = true },
+                    title = "Choose a Photo",
+                )
 
-            WhiteButtonWithStroke(
-                onClick = { navController.navigate("home-screen"){
-                    popUpTo("addphoto-screen") { inclusive = true }
-                } },
-                title = "Maybe Later"
-            )
+                Spacer(modifier = Modifier.height(10.dp))
+
+                WhiteButtonWithStroke(
+                    onClick = { navController.navigate("home-screen") {
+                        popUpTo("addphoto-screen") { inclusive = true }
+                    } },
+                    title = "Maybe Later"
+                )
+            }
         }
     }
 }

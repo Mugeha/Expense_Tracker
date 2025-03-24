@@ -45,6 +45,8 @@ fun ProfileScreen(
     val profileViewModel: ProfileViewModel = viewModel(factory = ProfileViewModelFactory(context))
     val usernameViewModel: UsernameViewModel = viewModel(factory = UsernameViewModelFactory(context))
     val username by usernameViewModel.username.collectAsState()
+    val email by usernameViewModel.email.collectAsState()
+
 
     val profileImageUri by photoViewModel.profileImageUri.observeAsState()
 
@@ -146,7 +148,7 @@ fun ProfileScreen(
                 )
             }
             ProfileItem(R.drawable.human_profile, "Name", username ?: "Loading...")
-            ProfileItem(R.drawable.mail_2, "Email", "mugehajacky@gmail.com")
+            ProfileItem(R.drawable.mail_2, "Email", email ?: "Loading...")
         }
 
         ProfileSection("Account Info") {

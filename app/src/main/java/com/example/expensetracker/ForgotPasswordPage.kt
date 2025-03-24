@@ -104,7 +104,7 @@ fun ForgotPasswordPage(navController: NavController) {
             ) {
                 Text(
                     text = "Forgot email?",
-                    style = MaterialTheme.typography.labelSmall.copy(color = colorResource(id = R.color.ForgotPasswordColor)),
+                    style = MaterialTheme.typography.labelLarge.copy(color = colorResource(id = R.color.ForgotPasswordColor)),
                     modifier = Modifier.clickable {
                         navController.navigate("enter-phone-number")
                     }
