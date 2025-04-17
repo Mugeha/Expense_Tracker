@@ -28,7 +28,6 @@ interface ApiService {
     @Multipart
     @POST("api/auth/upload-image")
     suspend fun uploadImage(
-        @Part("email") email: RequestBody,
         @Part profileImage: MultipartBody.Part
     ): Response<Unit>
 

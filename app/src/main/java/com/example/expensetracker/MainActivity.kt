@@ -129,8 +129,8 @@ fun MyAppNavigation() {
             val email = backStackEntry.arguments?.getString("email") ?: ""
 
             val context = LocalContext.current
-            val apiService = remember { ApiService.create() }
             val sessionManager = remember { SessionManager(context) }
+            val apiService = remember { ApiService.create(sessionManager) }
             val photoViewModelFactory = remember { PhotoViewModelFactory(apiService, sessionManager, context) }
             val photoViewModel: PhotoViewModel = viewModel(factory = photoViewModelFactory)
 
@@ -150,8 +150,8 @@ fun MyAppNavigation() {
         }
         composable("account-page") {
             val context = LocalContext.current
-            val apiService = remember { ApiService.create() }
             val sessionManager = remember { SessionManager(context) }
+            val apiService = remember { ApiService.create(sessionManager) }
             val photoViewModelFactory = remember { PhotoViewModelFactory(apiService, sessionManager, context) }
             val photoViewModel: PhotoViewModel = viewModel(factory = photoViewModelFactory)
 
@@ -455,9 +455,8 @@ fun SignupScreen(
     navController: NavController,
     context: Context
 ) {
-    val apiService = ApiService.create()
     val sessionManager = SessionManager(context)
-
+    val apiService = ApiService.create(sessionManager)
     val viewModel: SignupViewModel = viewModel(
         factory = SignupViewModelFactory(apiService, sessionManager)
     )
@@ -537,8 +536,8 @@ fun SignupScreen(
 
 @Composable
 fun LoginScreen(navController: NavController, context: Context) {
-    val apiService = ApiService.create()
     val sessionManager = SessionManager(context)
+    val apiService = ApiService.create(sessionManager)
     val viewModel: LoginViewModel = viewModel(factory = LoginViewModelFactory(apiService, sessionManager))
 
     var email by remember { mutableStateOf("") }
