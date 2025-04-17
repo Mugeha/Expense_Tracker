@@ -3,9 +3,11 @@ package com.example.expensetracker
 import ProfileScreen
 import android.content.Context
 import android.content.res.Configuration
+import android.net.Uri
 import android.os.Bundle
 import android.util.Patterns
 import android.widget.Toast
+import coil.compose.rememberAsyncImagePainter
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
@@ -31,19 +33,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Divider
-import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
@@ -66,7 +62,6 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.tooling.preview.Preview
 //import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -76,15 +71,19 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.example.expensetracker.api.ApiService
+import com.example.expensetracker.data.remote.SessionManager
 import com.example.expensetracker.ui.theme.ExpenseTrackerTheme
 import com.example.expensetracker.viewModel.LoginViewModel
 import com.example.expensetracker.viewModel.LoginViewModelFactory
 import com.example.expensetracker.viewModel.PhotoViewModel
+import com.example.expensetracker.viewModel.PhotoViewModelFactory
 import com.example.expensetracker.viewModel.SignupViewModel
 import com.example.expensetracker.viewModel.SignupViewModelFactory
-import com.example.expensetracker.viewModel.TeaserViewModel
-import com.example.expensetracker.viewModel.TeaserViewModelFactory
 import com.example.walletapp.TransactionHistoryScreen
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -125,20 +124,41 @@ fun MyAppNavigation() {
         composable("login-screen") {
             LoginScreen(navController, context = LocalContext.current)
         }
-        composable("addphoto-screen") {
-            val photoViewModel: PhotoViewModel = viewModel()
-            AddPhoto(navController, photoViewModel)
+
+        composable("addphoto-screen/{username}/{email}/{password}") { backStackEntry ->
+            val email = backStackEntry.arguments?.getString("email") ?: ""
+
+            val context = LocalContext.current
+            val apiService = remember { ApiService.create() }
+            val sessionManager = remember { SessionManager(context) }
+            val photoViewModelFactory = remember { PhotoViewModelFactory(apiService, sessionManager, context) }
+            val photoViewModel: PhotoViewModel = viewModel(factory = photoViewModelFactory)
+
+            AddPhoto(navController, photoViewModel, email)
         }
+
+
+
+
+
+
+
 
         composable("forgot-pwd")
         {
             ForgotPasswordPage(navController)
         }
-        composable("account-page"){
-            val photoViewModel: PhotoViewModel = viewModel()
+        composable("account-page") {
+            val context = LocalContext.current
+            val apiService = remember { ApiService.create() }
+            val sessionManager = remember { SessionManager(context) }
+            val photoViewModelFactory = remember { PhotoViewModelFactory(apiService, sessionManager, context) }
+            val photoViewModel: PhotoViewModel = viewModel(factory = photoViewModelFactory)
 
-            ProfileScreen(navController, context = LocalContext.current, photoViewModel)
+            ProfileScreen(navController, context = context, apiService) // ✅ Pass apiService instead of photoViewModel
         }
+
+
         composable("reset-pwd")
         {
             ResetPassword(navController)
@@ -297,16 +317,6 @@ fun WhiteButton(onClick: () -> Unit = {}, title: String) {
 
 @Composable
 fun TeaserScreen(navController: NavController, context: Context) {
-    val viewModel: TeaserViewModel = viewModel(factory = TeaserViewModelFactory(context))
-    val navigateTo by viewModel.navigateTo.collectAsState()
-
-    // ✅ Navigate based on token state
-    LaunchedEffect(navigateTo) {
-        navigateTo?.let {
-            navController.popBackStack() // Prevent returning to teaser screen
-            navController.navigate(it)
-        }
-    }
 
     val image = painterResource(R.drawable.background_image)
     val configuration = LocalConfiguration.current
@@ -411,18 +421,6 @@ fun FilledButton(
 }
 
 
-
-//@Preview(showBackground = true)
-//@Composable
-//fun AnalyticsScreenPreview() {
-//    ExpenseTrackerTheme {
-//        val navController = rememberNavController() // Create a dummy NavController for preview
-//        AnalyticsScreen(navController = navController)
-//    }
-//}
-
-
-
 @Composable
 fun TextForSigningUpOrLoginIn(navController: NavController){
     Box(
@@ -452,26 +450,26 @@ fun TextForSigningUpOrLoginIn(navController: NavController){
 }
 
 
-//@Preview (showBackground = true)
-//@Composable
-//fun SignUpScreenPreview() {
-//    ExpenseTrackerTheme {
-//        SignupScreen(navController = rememberNavController())
-//    }
-//}
-
 @Composable
 fun SignupScreen(
     navController: NavController,
     context: Context
 ) {
-    val viewModel: SignupViewModel = viewModel(factory = SignupViewModelFactory(context))
+    val apiService = ApiService.create()
+    val sessionManager = SessionManager(context)
 
+    val viewModel: SignupViewModel = viewModel(
+        factory = SignupViewModelFactory(apiService, sessionManager)
+    )
 
-//    val context = LocalContext.current
-    val screenWidth = LocalConfiguration.current.screenWidthDp.dp
-    val screenHeight = LocalConfiguration.current.screenHeightDp.dp
-    val isLandscape = screenWidth > screenHeight
+    val signupResult by viewModel.signupResult.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
+
+    LaunchedEffect(signupResult) {
+        signupResult?.let {
+            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+        }
+    }
 
     var username by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
@@ -488,54 +486,48 @@ fun SignupScreen(
     val isPasswordInvalid = passwordTouched && (password.isEmpty() || password.length < 6)
     val isConfirmPasswordInvalid = confirmPasswordTouched && (confirmPassword.isEmpty() || confirmPassword != password)
 
-    // Observe signup result
-    LaunchedEffect(viewModel.signupResult) {
-        viewModel.signupResult?.let {
-            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
-        }
-    }
-
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .widthIn(max = minOf(500.dp, screenWidth * 0.8f))
             .background(colorResource(id = R.color.HomeColor))
-            .padding(horizontal = if (isLandscape) 50.dp else 30.dp, vertical = if (isLandscape) 20.dp else 50.dp),
+            .padding(horizontal = 30.dp, vertical = 50.dp),
         contentAlignment = Alignment.Center
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp),
+            modifier = Modifier.fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text("Sign Up", style = MaterialTheme.typography.headlineLarge.copy(color = Color.White), modifier = Modifier.padding(bottom = 16.dp))
+            Text("Sign Up", style = MaterialTheme.typography.headlineLarge.copy(color = Color.White))
             Text("Please fill in your details to proceed", style = MaterialTheme.typography.bodyLarge.copy(color = Color.White.copy(alpha = 0.8f)))
 
-            Column(modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                CustomUnderlineTextField(value = username, onValueChange = { username = it; usernameTouched = true }, placeholder = "Username", isError = isUsernameInvalid)
-                if (isUsernameInvalid) Text("Username must be at least 3 characters", color = Color.Red, modifier = Modifier.padding(top = 4.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
-                CustomUnderlineTextField(value = email, onValueChange = { email = it; emailTouched = true }, placeholder = "Email", isError = isEmailInvalid)
-                if (isEmailInvalid) Text("Enter a valid email", color = Color.Red, modifier = Modifier.padding(top = 4.dp))
+            // Input Fields
+            CustomUnderlineTextField(value = username, onValueChange = { username = it; usernameTouched = true }, placeholder = "Username", isError = isUsernameInvalid)
+            if (isUsernameInvalid) Text("Username must be at least 3 characters", color = Color.Red)
 
-                CustomUnderlineTextField(value = password, onValueChange = { password = it; passwordTouched = true }, placeholder = "Password", isPassword = true, isError = isPasswordInvalid)
-                if (isPasswordInvalid) Text("Password must be at least 6 characters", color = Color.Red, modifier = Modifier.padding(top = 4.dp))
+            CustomUnderlineTextField(value = email, onValueChange = { email = it; emailTouched = true }, placeholder = "Email", isError = isEmailInvalid)
+            if (isEmailInvalid) Text("Enter a valid email", color = Color.Red)
 
-                CustomUnderlineTextField(value = confirmPassword, onValueChange = { confirmPassword = it; confirmPasswordTouched = true }, placeholder = "Confirm Password", isPassword = true, isError = isConfirmPasswordInvalid)
-                if (isConfirmPasswordInvalid) Text("Passwords do not match", color = Color.Red, modifier = Modifier.padding(top = 4.dp))
-            }
+            CustomUnderlineTextField(value = password, onValueChange = { password = it; passwordTouched = true }, placeholder = "Password", isPassword = true, isError = isPasswordInvalid)
+            if (isPasswordInvalid) Text("Password must be at least 6 characters", color = Color.Red)
 
-            Column(verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
-                FilledButton(
-                    title = if (viewModel.isLoading) "Signing Up..." else "Continue",
-                    enabled = !viewModel.isLoading && !isUsernameInvalid && !isEmailInvalid && !isPasswordInvalid && !isConfirmPasswordInvalid,
-                    onClick = { viewModel.signUp(email, username, password, navController) }
-                )
+            CustomUnderlineTextField(value = confirmPassword, onValueChange = { confirmPassword = it; confirmPasswordTouched = true }, placeholder = "Confirm Password", isPassword = true, isError = isConfirmPasswordInvalid)
+            if (isConfirmPasswordInvalid) Text("Passwords do not match", color = Color.Red)
 
-                Spacer(modifier = Modifier.height(16.dp))
-                TextForSigningUpOrLoginIn(navController = navController)
-            }
+            Spacer(modifier = Modifier.height(30.dp))
+
+            FilledButton(
+                title = if (isLoading) "Signing Up..." else "Continue",
+                enabled = !isLoading && !isUsernameInvalid && !isEmailInvalid && !isPasswordInvalid && !isConfirmPasswordInvalid,
+                onClick = {
+                    // Navigate to AddPhotoScreen with user data
+                    navController.navigate("addphoto-screen/${username}/${email}/${password}")
+                }
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+            TextForSigningUpOrLoginIn(navController = navController)
         }
     }
 }
@@ -543,30 +535,29 @@ fun SignupScreen(
 
 
 
-//@Preview (showBackground = true)
-//@Composable
-//fun LoginScreenPreview() {
-//    ExpenseTrackerTheme {
-//        LoginScreen(navController = rememberNavController())
-//    }
-//}
-
-
 @Composable
 fun LoginScreen(navController: NavController, context: Context) {
-    val viewModel: LoginViewModel = viewModel(factory = LoginViewModelFactory(context))
+    val apiService = ApiService.create()
+    val sessionManager = SessionManager(context)
+    val viewModel: LoginViewModel = viewModel(factory = LoginViewModelFactory(apiService, sessionManager))
 
-//    val context = LocalContext.current
+    var email by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
 
-    val loginResult by remember { mutableStateOf(viewModel.loginResult) }
+    var emailTouched by remember { mutableStateOf(false) }
+    var passwordTouched by remember { mutableStateOf(false) }
+
+    val isEmailInvalid = emailTouched && (email.isEmpty() || !Patterns.EMAIL_ADDRESS.matcher(email).matches())
+    val isPasswordInvalid = passwordTouched && (password.isEmpty() || password.length < 6)
+
+    val loginResult by viewModel.loginResult.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
 
     LaunchedEffect(loginResult) {
         loginResult?.let {
             Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
         }
     }
-
-
 
     val image = painterResource(R.drawable.waving_hand)
 
@@ -607,43 +598,31 @@ fun LoginScreen(navController: NavController, context: Context) {
                 .padding(vertical = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Email Field
             CustomUnderlineTextField(
-                value = viewModel.email,
+                value = email,
                 onValueChange = {
-                    viewModel.email = it
-                    viewModel.emailTouched = true
+                    email = it
+                    emailTouched = true
                 },
                 placeholder = "Email",
-                isError = viewModel.isEmailInvalid
+                isError = isEmailInvalid
             )
-            if (viewModel.isEmailInvalid) {
-                Text(
-                    text = "Enter a valid email",
-                    color = Color.Red,
-                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                    modifier = Modifier.padding(top = 4.dp)
-                )
+            if (isEmailInvalid) {
+                Text("Enter a valid email", color = Color.Red)
             }
 
-            // Password Field
             CustomUnderlineTextField(
-                value = viewModel.password,
+                value = password,
                 onValueChange = {
-                    viewModel.password = it
-                    viewModel.passwordTouched = true
+                    password = it
+                    passwordTouched = true
                 },
                 placeholder = "Password",
                 isPassword = true,
-                isError = viewModel.isPasswordInvalid
+                isError = isPasswordInvalid
             )
-            if (viewModel.isPasswordInvalid) {
-                Text(
-                    text = "Password must be at least 6 characters",
-                    color = Color.Red,
-                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                    modifier = Modifier.padding(top = 4.dp)
-                )
+            if (isPasswordInvalid) {
+                Text("Password must be at least 6 characters", color = Color.Red)
             }
         }
 
@@ -660,11 +639,12 @@ fun LoginScreen(navController: NavController, context: Context) {
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.padding(top = 40.dp)
         ) {
-            // Login Button
             FilledButton(
-                title = if (viewModel.isLoading) "Logging in..." else "Log in",
-                enabled = !(viewModel.isEmailInvalid || viewModel.isPasswordInvalid) && !viewModel.isLoading,
-                onClick = { viewModel.performLogin(navController) }
+                title = if (isLoading) "Logging In..." else "Log in",
+                enabled = !isLoading && !isEmailInvalid && !isPasswordInvalid,
+                onClick = {
+                    viewModel.login(email, password, navController)
+                }
             )
             Spacer(modifier = Modifier.height(10.dp))
             WhiteButton(title = "Log in with Google")
@@ -790,35 +770,35 @@ fun CustomUnderlineTextField(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddPhoto(navController: NavController, photoViewModel: PhotoViewModel) {
+fun AddPhoto(navController: NavController, photoViewModel: PhotoViewModel, email: String) {
     val bottomSheetState = rememberModalBottomSheetState()
     var showBottomSheet by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
     // Observe image URI from PhotoViewModel
-    val imageUri by photoViewModel.profileImageUri.observeAsState()
+    val profileImageUri by photoViewModel.profileImageUri.observeAsState()
+    var tempImageUri by remember { mutableStateOf<Uri?>(null) }
 
-    // Load the saved image on screen start
+    // Load saved image when screen loads
     LaunchedEffect(Unit) {
-        photoViewModel.loadProfileImage(context) // ✅ Corrected reference
+        photoViewModel.loadProfileImage()
     }
 
-    // Take Photo Handler
+    // Camera capture handler
     val takePhotoLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
-        if (success) {
-            imageUri?.let { photoViewModel.saveProfileImage(context, it) }
-            navController.navigate("home-screen")
+        if (success && tempImageUri != null) {
+            photoViewModel.saveProfileImage(tempImageUri!!)
         }
     }
 
-    // Gallery Selection Handler
+    // Gallery pick handler
     val pickImageLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         uri?.let {
-            photoViewModel.saveProfileImage(context, it)
-            navController.navigate("home-screen")
+            photoViewModel.saveProfileImage(it)
         }
     }
 
+    // Bottom sheet for selecting source
     if (showBottomSheet) {
         ModalBottomSheet(
             onDismissRequest = { showBottomSheet = false },
@@ -833,8 +813,11 @@ fun AddPhoto(navController: NavController, photoViewModel: PhotoViewModel) {
                 WhiteButtonWithDarkText(
                     onClick = {
                         showBottomSheet = false
-                        val newUri = photoViewModel.createImageUri(context)
-                        takePhotoLauncher.launch(newUri)
+                        val newUri = photoViewModel.createImageUri()
+                        if (newUri != null) {
+                            tempImageUri = newUri
+                            takePhotoLauncher.launch(newUri)
+                        }
                     },
                     title = "Take Photo"
                 )
@@ -870,11 +853,11 @@ fun AddPhoto(navController: NavController, photoViewModel: PhotoViewModel) {
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            // Top Center Content
+            // Top Section
             Column(
                 modifier = Modifier
                     .align(Alignment.TopCenter)
-                    .padding(top = 16.dp), // Add some padding from the top if needed
+                    .padding(top = 16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
@@ -884,40 +867,95 @@ fun AddPhoto(navController: NavController, photoViewModel: PhotoViewModel) {
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Display Profile Image or Placeholder
+                // Profile Image or Placeholder
                 Image(
-                    painter = painterResource(R.drawable.human_profile),
+                    painter = profileImageUri?.let { rememberAsyncImagePainter(it) }
+                        ?: painterResource(R.drawable.human_profile),
                     contentDescription = "Profile Picture",
                     modifier = Modifier
                         .size(140.dp)
                         .clip(CircleShape)
                 )
+
+                // Upload "+" Icon with Text
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier
+                        .clickable {
+                            val selectedUri = profileImageUri
+                            if (selectedUri != null) {
+                                photoViewModel.uploadProfileImage(
+                                    email = email,
+                                    uri = selectedUri,
+                                    onSuccess = {
+                                        Toast.makeText(context, "Profile uploaded!", Toast.LENGTH_SHORT).show()
+                                        navController.navigate("home-screen") {
+                                            popUpTo("addphoto-screen") { inclusive = true }
+                                        }
+                                    },
+                                    onError = { message ->
+                                        Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                                    }
+                                )
+                            } else {
+                                Toast.makeText(context, "No image selected", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = "Upload",
+                        tint = Color.Gray,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Text(
+                        text = "Upload",
+                        style = MaterialTheme.typography.bodySmall.copy(color = Color.Gray)
+                    )
+                }
             }
 
-            // Bottom Center Content
+            // Bottom Section
             Column(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .padding(bottom = 16.dp), // Add some padding from the bottom if needed
+                    .padding(bottom = 16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 FilledButton(
-                    onClick = { showBottomSheet = true },
-                    title = "Choose a Photo",
+                    onClick = {
+                        showBottomSheet = true
+                    },
+                    title = "Choose a photo"
                 )
 
                 Spacer(modifier = Modifier.height(10.dp))
 
                 WhiteButtonWithStroke(
-                    onClick = { navController.navigate("home-screen") {
-                        popUpTo("addphoto-screen") { inclusive = true }
-                    } },
+                    onClick = {
+                        navController.navigate("home-screen") {
+                            popUpTo("addphoto-screen") { inclusive = true }
+                        }
+                    },
                     title = "Maybe Later"
                 )
             }
         }
     }
 }
+
+
+
+
+
+
+
+
+
+
+
 
 
 

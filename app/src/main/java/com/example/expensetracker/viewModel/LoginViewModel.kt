@@ -1,59 +1,73 @@
 package com.example.expensetracker.viewModel
 
 import android.util.Log
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavController
-import com.example.expensetracker.repository.AuthRepository
+import com.example.expensetracker.api.ApiService
+import com.example.expensetracker.api.LoginRequest
+import com.example.expensetracker.data.remote.SessionManager
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
-class LoginViewModel(private val authRepository: AuthRepository) : ViewModel() {
+class LoginViewModel(
+    private val apiService: ApiService,
+    private val sessionManager: SessionManager
+) : ViewModel() {
 
-    var email by mutableStateOf("")
-    var password by mutableStateOf("")
-    var emailTouched by mutableStateOf(false)
-    var passwordTouched by mutableStateOf(false)
-    var loginResult by mutableStateOf<String?>(null)
-        private set
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading: StateFlow<Boolean> = _isLoading
 
-    var isLoading by mutableStateOf(false)
-        private set
+    private val _loginResult = MutableStateFlow<String?>(null)
+    val loginResult: StateFlow<String?> = _loginResult
 
-    // ✅ Validate email and password
-    val isEmailInvalid: Boolean
-        get() = emailTouched && !android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()
+    // ✅ Login Method
+    fun login(email: String, password: String, navController: NavController) {
+        Log.d("LoginViewModel", "Login attempt with email: $email")
 
-    val isPasswordInvalid: Boolean
-        get() = passwordTouched && password.length < 6
+        if (email.isBlank() || password.isBlank()) {
+            Log.w("LoginViewModel", "Empty email or password.")
+            _loginResult.value = "Email and password required."
+            return
+        }
 
-    // ✅ Perform Login with Token Handling
-    fun performLogin(navController: NavController) {
-        if (isLoading) return
-        isLoading = true
-        Log.d("LoginViewModel", "Attempting login with email: $email")
+        if (_isLoading.value) {
+            Log.d("LoginViewModel", "Login already in progress, ignoring new request.")
+            return
+        }
+
+        _isLoading.value = true
 
         viewModelScope.launch {
-            val result = authRepository.login(email, password)
+            try {
+                Log.d("LoginViewModel", "Calling login API...")
+                val response = apiService.login(LoginRequest(email, password))
 
-            result.onSuccess { token ->
-                Log.d("LoginViewModel", "Login successful! Token: $token")
-                loginResult = "Login Successful!"
+                if (response.isSuccessful) {
+                    val user = response.body()!!
+                    Log.d("LoginViewModel", "Login successful. Token: ${user.token}")
 
-                // 🔥 Navigate to home and clear backstack
-                navController.navigate("home-screen") {
-                    popUpTo("login-screen") { inclusive = true } // Clears signup from the stack
-                    launchSingleTop = true // Avoids multiple instances
+                    sessionManager.saveUserSession(user.token, user.username, user.profileImage)
+                    Log.d("LoginViewModel", "User session saved. Navigating to home.")
+
+                    _loginResult.value = "Login successful!"
+
+                    navController.navigate("home-screen") {
+                        popUpTo("login-screen") { inclusive = true }
+                    }
+                } else {
+                    Log.w("LoginViewModel", "Login failed. Response code: ${response.code()}")
+                    _loginResult.value = "Login failed. Check credentials."
                 }
 
-            }.onFailure { error ->
-                Log.e("LoginViewModel", "Login failed: ${error.message}")
-                loginResult = error.message ?: "Login failed. Try again. Either password or email is wrong."
+            } catch (e: Exception) {
+                Log.e("LoginViewModel", "Login exception: ${e.message}", e)
+                _loginResult.value = "Error: ${e.message}"
+            } finally {
+                _isLoading.value = false
+                Log.d("LoginViewModel", "Login flow complete. Loading state reset.")
             }
-
-            isLoading = false
         }
     }
 }

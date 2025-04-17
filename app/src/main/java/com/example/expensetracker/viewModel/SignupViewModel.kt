@@ -1,61 +1,87 @@
 package com.example.expensetracker.viewModel
 
 import android.util.Log
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavController
-import com.example.expensetracker.repository.AuthRepository
+import com.example.expensetracker.api.ApiService
+import com.example.expensetracker.data.remote.SessionManager
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody
+import java.io.File
 
-class SignupViewModel(private val authRepository: AuthRepository) : ViewModel() {
+class SignupViewModel(
+    private val apiService: ApiService,
+    private val sessionManager: SessionManager
+) : ViewModel() {
 
-    var isLoading by mutableStateOf(false)
+    var isLoading = MutableStateFlow(false)
         private set
 
-    var signupResult by mutableStateOf<String?>(null)
-        private set
+    private val _signupResult = MutableStateFlow<String?>(null)
+    val signupResult = _signupResult.asStateFlow()
 
-    // ✅ SignUp Method: Handles Signup and Navigation
-    fun signUp(email: String, username: String, password: String, navController: NavController) {
+    fun signUp(
+        email: String,
+        username: String,
+        password: String,
+        navController: NavController
+    ) {
+        Log.d("SignupViewModel", "Attempting signup for email: $email, username: $username")
 
         if (email.isBlank() || username.isBlank() || password.isBlank()) {
-            signupResult = "All fields are required."
-            return
-        }
-        if (password.length < 6) {
-            signupResult = "Password must be at least 6 characters long."
+            Log.w("SignupViewModel", "Validation failed: One or more fields are blank.")
+            _signupResult.value = "All fields are required."
             return
         }
 
-        if (isLoading) return
-        isLoading = true
-        Log.d("SignupViewModel", "Attempting signup with email: $email, username: $username")
+        if (isLoading.value) {
+            Log.d("SignupViewModel", "Signup already in progress. Ignoring new request.")
+            return
+        }
+
+        isLoading.value = true
+        Log.d("SignupViewModel", "Sending signup request...")
 
         viewModelScope.launch {
-            Log.d("SignupViewModel", "Starting signup request...")
-            val result = authRepository.signUp(email, username, password)
+            try {
+                val emailBody = RequestBody.create("text/plain".toMediaTypeOrNull(), email)
+                val usernameBody = RequestBody.create("text/plain".toMediaTypeOrNull(), username)
+                val passwordBody = RequestBody.create("text/plain".toMediaTypeOrNull(), password)
 
-            result.onSuccess { token ->
-                Log.d("SignupViewModel", "Signup successful. Token: $token")
+                val response = apiService.signup(usernameBody, emailBody, passwordBody)
 
-                signupResult = "Signup Successful!"
+                if (response.isSuccessful) {
+                    response.body()?.let { user ->
+                        Log.d("SignupViewModel", "Signup successful. Token: ${user.token}")
 
-                // Ensure navigation happens after successful signup
-                navController.navigate("addphoto-screen") {
-                    popUpTo("signup-screen") { inclusive = true } // Clears signup from the stack
-                    launchSingleTop = true // Avoids multiple instances
+                        sessionManager.saveUserSession(user.token, user.username, user.profileImage)
+                        Log.d("SignupViewModel", "Session saved. Navigating to add-photo screen.")
+
+                        _signupResult.value = "Signup successful!"
+
+                        navController.navigate("add-photo-screen") {
+                            popUpTo("signup-screen") { inclusive = true }
+                        }
+                    } ?: run {
+                        Log.w("SignupViewModel", "Signup failed: Empty response body.")
+                        _signupResult.value = "Signup failed. Empty response."
+                    }
+                } else {
+                    Log.w("SignupViewModel", "Signup failed. Code: ${response.code()}")
+                    _signupResult.value = "Signup failed. Try again."
                 }
-
-            }.onFailure { error ->
-                Log.e("SignupViewModel", "Signup failed: ${error.message}")
-                signupResult = error.message ?: "Signup failed. Try again."
+            } catch (e: Exception) {
+                Log.e("SignupViewModel", "Exception during signup: ${e.message}", e)
+                _signupResult.value = "Error: ${e.message}"
+            } finally {
+                isLoading.value = false
+                Log.d("SignupViewModel", "Signup flow finished. Loading state reset.")
             }
-
-            isLoading = false
         }
-
     }
 }

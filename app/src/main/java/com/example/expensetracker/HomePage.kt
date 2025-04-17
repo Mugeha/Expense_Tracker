@@ -4,11 +4,8 @@ import android.content.Context
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import coil.compose.AsyncImage
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -19,55 +16,45 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import coil.compose.rememberAsyncImagePainter
+import com.example.expensetracker.data.remote.SessionManager
 import com.example.expensetracker.viewModel.PhotoViewModel
-import com.example.expensetracker.viewModel.UsernameViewModel
-import com.example.expensetracker.viewModel.UsernameViewModelFactory
 
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(navController: NavController, context: Context, photoViewModel: PhotoViewModel) {
-    val viewModel: UsernameViewModel = viewModel(factory = UsernameViewModelFactory(context))
-
-    val username by viewModel.username.collectAsState()
-
     var expanded by remember { mutableStateOf(false) }
     var balanceVisible by remember { mutableStateOf(false) }
     var selectedPeriod by remember { mutableStateOf("This Week") }
 
-    // Observe image URI from PhotoViewModel
-    val profileImageUri by photoViewModel.profileImageUri.observeAsState()
+    // ✅ Fetch user session data directly from SessionManager
+    val sessionManager = remember { SessionManager(context) }
+    val username = remember { sessionManager.getUsername() }  // Fetch stored username
+    val storedProfileImage = remember { sessionManager.getProfileImage() } // Fetch stored profile image URL
 
-    // Load the profile image once when the screen is launched
+    // ✅ Observe image URI from ViewModel
+    val imageUri by photoViewModel.profileImageUri.observeAsState()
+
+    // ✅ Use locally stored image if available, otherwise use the image from the backend
+    val finalProfileImage = imageUri ?: storedProfileImage
+
+    // ✅ Load profile image only when the screen is launched
     LaunchedEffect(Unit) {
-        photoViewModel.loadProfileImage(context)
+        photoViewModel.loadProfileImage() // ✅ No arguments needed
     }
 
-    // Scroll and BottomBar state
-    val scrollState = rememberScrollState()
-    var bottomBarVisible by remember { mutableStateOf(true) }
-
-    // Hide/Show bottom bar based on scroll position
-    LaunchedEffect(scrollState.value) {
-        bottomBarVisible = scrollState.value <= 0
-    }
 
     Scaffold(
         bottomBar = {
-            if (bottomBarVisible) {
-                BottomNavigationBar(navController, selectedItem = "Home")
-            }
+            BottomNavigationBar(navController, selectedItem = "Home")
         }
     ) { paddingValues ->
         Column(
@@ -76,39 +63,42 @@ fun HomeScreen(navController: NavController, context: Context, photoViewModel: P
                 .padding(paddingValues)
                 .padding(16.dp)
         ) {
-            // User Profile Section
+            // ✅ User Profile Section
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.Start
             ) {
-                AsyncImage(
-                    model = profileImageUri ?: R.drawable.human_profile,
-                    contentDescription = "Profile Image",
-                    contentScale = ContentScale.Crop,
+                // ✅ Display Profile Image (From Local Cache or Backend)
+                Image(
+                    painter = finalProfileImage?.let { rememberAsyncImagePainter(it) }
+                        ?: painterResource(R.drawable.human_profile),
+                    contentDescription = "Profile Picture",
                     modifier = Modifier
-                        .size(54.dp)
+                        .size(140.dp)
                         .clip(CircleShape)
-                        .clickable { navController.navigate("account-page") }
+                        .clickable {
+                            navController.navigate("account-page")
+                        }
                 )
-                Spacer(modifier = Modifier.width(8.dp)) // Add space between image and text
+                Spacer(modifier = Modifier.width(8.dp))
 
+                // ✅ Display Username (From SessionManager)
                 Text(
-                    text = "Welcome, \n$username", // Dynamic username here
+                    text = "Welcome, \n${username ?: "User"}", // Default to "User" if username is null
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Normal,
-                    fontSize = 16.sp
                 )
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Balance Card
+            // ✅ Balance Card
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(200.dp),
                 shape = RoundedCornerShape(10.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp) // Adds shadow
+                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
             ) {
                 Box(
                     modifier = Modifier
@@ -163,12 +153,12 @@ fun HomeScreen(navController: NavController, context: Context, photoViewModel: P
 
             Spacer(modifier = Modifier.height(5.dp))
 
-            // Dashboard Section
+            // ✅ Dashboard Section
             DashboardScreen(navController = navController)
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Summary Section
+            // ✅ Summary Section
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -202,7 +192,6 @@ fun HomeScreen(navController: NavController, context: Context, photoViewModel: P
                         )
                     }
 
-                    // Dropdown Menu
                     DropdownMenu(
                         expanded = expanded,
                         onDismissRequest = { expanded = false },
@@ -218,12 +207,9 @@ fun HomeScreen(navController: NavController, context: Context, photoViewModel: P
                                     Text(
                                         text = item,
                                         color = Color.DarkGray,
-                                        modifier = Modifier.padding(top = 4.dp, bottom = 4.dp)
+                                        modifier = Modifier.padding(vertical = 4.dp)
                                     )
-                                },
-                                modifier = Modifier
-                                    .padding(horizontal = 14.dp, vertical = 4.dp)
-                                    .border(1.dp, Color.LightGray, RoundedCornerShape(8.dp))
+                                }
                             )
                         }
                     }
@@ -232,11 +218,13 @@ fun HomeScreen(navController: NavController, context: Context, photoViewModel: P
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Transaction List (Scrollable)
+            // ✅ Transaction List (Scrollable)
             TransactionList()
         }
     }
 }
+
+
 
 
 //@Preview(showBackground = true)
@@ -256,8 +244,6 @@ fun DashboardButton(
 ) {
     Box(
         modifier = Modifier
-//            .size(110.dp)
-            // Adjust size as needed
             .height(150.dp)
             .width(125.dp)
             .padding(10.dp)

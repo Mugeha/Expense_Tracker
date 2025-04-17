@@ -1,6 +1,7 @@
 import android.content.Context
 import android.graphics.Bitmap
 import android.net.Uri
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
@@ -12,69 +13,99 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import androidx.navigation.compose.rememberNavController
 import coil.compose.AsyncImage
 import com.example.expensetracker.FilledButton
-import com.example.expensetracker.viewModel.ProfileViewModel
 import com.example.expensetracker.R
+import com.example.expensetracker.api.ApiService
+import com.example.expensetracker.data.remote.SessionManager
 import com.example.expensetracker.viewModel.PhotoViewModel
-import com.example.expensetracker.viewModel.ProfileViewModelFactory
-import com.example.expensetracker.viewModel.UsernameViewModel
-import com.example.expensetracker.viewModel.UsernameViewModelFactory
+import com.example.expensetracker.viewModel.PhotoViewModelFactory
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
     navController: NavController,
     context: Context,
-    photoViewModel: PhotoViewModel
+    apiService: ApiService // ✅ Pass ApiService instead of PhotoViewModel
 ) {
-    val profileViewModel: ProfileViewModel = viewModel(factory = ProfileViewModelFactory(context))
-    val usernameViewModel: UsernameViewModel = viewModel(factory = UsernameViewModelFactory(context))
-    val username by usernameViewModel.username.collectAsState()
-    val email by usernameViewModel.email.collectAsState()
+    // ✅ Use LocalContext for correct context reference
+    val appContext = LocalContext.current
 
+    // ✅ Initialize SessionManager
+    val sessionManager = remember { SessionManager(appContext) }
 
+    // ✅ Fetch user data from SessionManager
+    val username = remember { sessionManager.getUsername() }
+    val email = remember { sessionManager.getEmail() }
+    val storedProfileImage = remember { sessionManager.getProfileImage() }
+
+    // ✅ Initialize ViewModel using PhotoViewModelFactory
+    val photoViewModelFactory = remember { PhotoViewModelFactory(apiService, sessionManager, appContext) }
+    val photoViewModel: PhotoViewModel = viewModel(factory = photoViewModelFactory)
+
+    // ✅ Observe profile image URI from ViewModel
     val profileImageUri by photoViewModel.profileImageUri.observeAsState()
+
+    // ✅ Use the stored image if available, otherwise use ViewModel image
+    val finalProfileImage = profileImageUri ?: storedProfileImage
 
     var isLoggingOut by remember { mutableStateOf(false) }
     var isDarkMode by remember { mutableStateOf(false) }
 
-    // State for Bottom Sheet
+    // Bottom Sheet state
     val sheetState = rememberModalBottomSheetState()
     var showSheet by remember { mutableStateOf(false) }
 
-    // Gallery launcher (no changes needed)
+    // ✅ Gallery launcher
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
-        uri?.let { photoViewModel.updateProfileImage(context, it) }
+        uri?.let {
+            photoViewModel.saveProfileImage(it) // Save locally
+            val userEmail = email ?: return@let
+            photoViewModel.uploadProfileImage(
+                email = userEmail,
+                uri = it,
+                onSuccess = { /* Handle success UI updates */ },
+                onError = { errorMessage -> Log.e("ProfileScreen", errorMessage) }
+            )
+        }
     }
 
-// Camera launcher: Convert bitmap to Uri
+    // ✅ Camera launcher
     val cameraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicturePreview()
     ) { bitmap: Bitmap? ->
         bitmap?.let {
-            val uri = photoViewModel.bitmapToUri(context, it)
-            photoViewModel.updateProfileImage(context, uri)
+            val uri = photoViewModel.bitmapToUri(it)
+            uri?.let { safeUri ->
+                photoViewModel.saveProfileImage(safeUri)
+
+                val userEmail = email ?: return@let
+                photoViewModel.uploadProfileImage(
+                    email = userEmail,
+                    uri = safeUri,
+                    onSuccess = { /* Handle success */ },
+                    onError = { errorMessage -> Log.e("ProfileScreen", errorMessage) }
+                )
+            }
         }
     }
 
-
+    // ✅ UI Layout remains unchanged
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -105,11 +136,11 @@ fun ProfileScreen(
             contentAlignment = Alignment.Center
         ) {
             AsyncImage(
-                model = profileImageUri ?: R.drawable.human_profile,
+                model = finalProfileImage ?: R.drawable.human_profile,
                 contentDescription = "Profile Image",
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
-                    .size(150.dp) // Ensure the image fits the Box size
+                    .size(150.dp)
                     .clip(CircleShape)
                     .clickable { navController.navigate("account-page") }
             )
@@ -121,7 +152,7 @@ fun ProfileScreen(
                     .size(48.dp)
                     .align(Alignment.BottomEnd)
                     .offset(x = (-10).dp, y = (-12).dp)
-                    .clickable { showSheet = true } // Open bottom sheet
+                    .clickable { showSheet = true }
                     .alpha(0.9f)
             )
         }
@@ -139,7 +170,12 @@ fun ProfileScreen(
         // Profile Sections
         ProfileSection("Personal Info") {
             Spacer(modifier = Modifier.height(6.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                modifier = Modifier.clickable {
+                    navController.navigate("change-details-screen")
+                }
+            ) {
                 Text(text = "Edit", color = Color.Black)
                 Image(
                     painter = painterResource(R.drawable.edit_image_2),
@@ -152,7 +188,9 @@ fun ProfileScreen(
         }
 
         ProfileSection("Account Info") {
-            ProfileItem(R.drawable.settings_black, "Security", "Change Password")
+            ProfileItem(R.drawable.settings_black, "Security", "Change Password", onClick = {
+                navController.navigate("change-password-details")
+            })
         }
 
         ProfileSection("App Settings") {
@@ -174,11 +212,14 @@ fun ProfileScreen(
             enabled = !isLoggingOut,
             onClick = {
                 isLoggingOut = true
-                profileViewModel.logout(navController)
+                sessionManager.clearSession()
+                navController.navigate("login-screen") {
+                    popUpTo("home-screen") { inclusive = true }
+                }
             }
         )
 
-        // Bottom Sheet: Show Camera & Gallery Options
+        // Bottom Sheet for Camera & Gallery Options
         if (showSheet) {
             ModalBottomSheet(
                 onDismissRequest = { showSheet = false },
@@ -219,6 +260,9 @@ fun ProfileScreen(
 
 
 
+
+
+
 @Composable
 fun ProfileSection(title: String, content: @Composable () -> Unit) {
 
@@ -242,7 +286,7 @@ fun ProfileItem(
     subtitle: String,
     isSwitch: Boolean = false,
     switchState: Boolean = false,
-    modifier: Modifier = Modifier, // Add Modifier parameter with a default value
+    onClick: () -> Unit = {},
     onSwitchChange: ((Boolean) -> Unit)? = null
 ) {
     Row(
