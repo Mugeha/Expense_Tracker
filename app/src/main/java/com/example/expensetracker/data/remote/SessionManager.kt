@@ -11,6 +11,8 @@ class SessionManager(context: Context) {
         private const val KEY_TOKEN = "user_token"
         private const val KEY_USERNAME = "user_name"
         private const val KEY_PROFILE_IMAGE = "profile_image"
+        private const val KEY_EMAIL = "user_email" // 👈🏽 new
+
     }
 
     // ✅ Save user session data (token, username, profile image)
@@ -31,7 +33,7 @@ class SessionManager(context: Context) {
 
     fun saveEmail(email: String) {
         prefs.edit()
-            .putString("EMAIL", email)
+            .putString(KEY_EMAIL, email)
             .apply()
     }
 
@@ -43,7 +45,7 @@ class SessionManager(context: Context) {
     fun getUsername(): String? = prefs.getString(KEY_USERNAME, null)
 
     // ✅ Get email (if stored separately)
-    fun getEmail(): String? = prefs.getString("EMAIL", null)
+    fun getEmail(): String? = prefs.getString(KEY_EMAIL, null)
 
     // ✅ Get saved profile image URL
     fun getProfileImage(): String? = prefs.getString(KEY_PROFILE_IMAGE, null)

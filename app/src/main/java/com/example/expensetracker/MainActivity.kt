@@ -137,13 +137,6 @@ fun MyAppNavigation() {
             AddPhoto(navController, photoViewModel, email)
         }
 
-
-
-
-
-
-
-
         composable("forgot-pwd")
         {
             ForgotPasswordPage(navController)
@@ -460,8 +453,7 @@ fun SignupScreen(
     val viewModel: SignupViewModel = viewModel(
         factory = SignupViewModelFactory(apiService, sessionManager)
     )
-
-    val signupResult by viewModel.signupResult.collectAsState()
+ val signupResult by viewModel.signupResult.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
 
     LaunchedEffect(signupResult) {
