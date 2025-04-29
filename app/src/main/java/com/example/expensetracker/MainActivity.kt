@@ -939,9 +939,8 @@ fun AddPhoto(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier.clickable {
                         val selectedUri = profileImageUri
-                        if (selectedUri != null && email.isNotBlank()) {
+                        if (selectedUri != null) {
                             photoViewModel.uploadProfileImage(
-                                email = email,
                                 uri = selectedUri,
                                 onSuccess = {
                                     Toast.makeText(context, "Profile uploaded!", Toast.LENGTH_SHORT).show()
@@ -957,6 +956,7 @@ fun AddPhoto(
                             Toast.makeText(context, "No image selected", Toast.LENGTH_SHORT).show()
                         }
                     }
+
                 ) {
                     Icon(
                         imageVector = Icons.Default.Add,

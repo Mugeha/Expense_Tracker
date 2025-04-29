@@ -39,24 +39,23 @@ class PhotoViewModel(
         return resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)
     }
 
-    fun uploadProfileImage(email: String, uri: Uri, onSuccess: () -> Unit, onError: (String) -> Unit) {
-        viewModelScope.launch {
-            try {
-                val file = uriToFile(uri)
-                val result = authRepository.uploadProfileImage(email, file)
-                if (result.isSuccess) {
-                    _uploadResult.postValue(Result.success(Unit))
-                    onSuccess()
-                } else {
-                    _uploadResult.postValue(Result.failure(result.exceptionOrNull() ?: Exception("Upload failed")))
-                    onError(result.exceptionOrNull()?.message ?: "Unknown upload error")
-                }
-            } catch (e: Exception) {
-                _uploadResult.postValue(Result.failure(e))
-                onError(e.message ?: "Unknown error")
+    fun uploadProfileImage(
+        uri: Uri,
+        onSuccess: () -> Unit,
+        onError: (String) -> Unit
+    ) {
+        val file = uriToFile(uri)
+        if (file != null) {
+            viewModelScope.launch {
+                val result = authRepository.uploadProfileImage(file)
+                result.onSuccess { onSuccess() }
+                    .onFailure { onError(it.message ?: "Upload failed") }
             }
+        } else {
+            onError("Failed to process image")
         }
     }
+
 
     private fun uriToFile(uri: Uri): File {
         val inputStream = app.contentResolver.openInputStream(uri)
