@@ -383,13 +383,6 @@ fun TeaserScreen(navController: NavController, context: Context) {
     }
 }
 
-
-
-
-
-
-
-
 @Composable
 fun FilledButton(
     title: String,
@@ -451,7 +444,8 @@ fun TextForSigningUpOrLoginIn(navController: NavController){
 @Composable
 fun SignupScreen(
     navController: NavController,
-    context: Context
+    context: Context,
+    signupSharedViewModel: SignupSharedViewModel = viewModel()
 ) {
     val sessionManager = SessionManager(context)
     val apiService = ApiService.create(sessionManager)
@@ -460,7 +454,6 @@ fun SignupScreen(
     val signupViewModel: SignupViewModel = viewModel(
         factory = SignupViewModelFactory(authRepository)
     )
-    val signupSharedViewModel: SignupSharedViewModel = viewModel()
 
     val signupResult by signupViewModel.signupResult.collectAsState()
     val isLoading by signupViewModel.isLoading.collectAsState()
@@ -485,12 +478,10 @@ fun SignupScreen(
             Toast.makeText(context, result, Toast.LENGTH_SHORT).show()
 
             if (result == "Signup successful!") {
-                // Save to SharedViewModel
-                signupSharedViewModel.username = username
-                signupSharedViewModel.email = email
-                signupSharedViewModel.password = password
+                signupSharedViewModel.setUsername(username)
+                signupSharedViewModel.setEmail(email)
+                signupSharedViewModel.setPassword(password)
 
-                // Move to Add Photo screen
                 navController.navigate("addphoto-screen") {
                     popUpTo("signup-screen") { inclusive = true }
                 }
@@ -570,6 +561,7 @@ fun SignupScreen(
         }
     }
 }
+
 
 @Composable
 fun LoadingDialog() {
@@ -838,11 +830,10 @@ fun CustomUnderlineTextField(
 @Composable
 fun AddPhoto(
     navController: NavController,
-    photoViewModel: PhotoViewModel
+    photoViewModel: PhotoViewModel,
+    signupSharedViewModel: SignupSharedViewModel = viewModel()
 ) {
-    val signupSharedViewModel: SignupSharedViewModel = viewModel() // Grabbing it here
     val email = signupSharedViewModel.email
-
     val bottomSheetState = rememberModalBottomSheetState()
     var showBottomSheet by remember { mutableStateOf(false) }
     val context = LocalContext.current
@@ -948,7 +939,7 @@ fun AddPhoto(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier.clickable {
                         val selectedUri = profileImageUri
-                        if (selectedUri != null) {
+                        if (selectedUri != null && email.isNotBlank()) {
                             photoViewModel.uploadProfileImage(
                                 email = email,
                                 uri = selectedUri,
@@ -987,9 +978,7 @@ fun AddPhoto(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 FilledButton(
-                    onClick = {
-                        showBottomSheet = true
-                    },
+                    onClick = { showBottomSheet = true },
                     title = "Choose a photo"
                 )
 
@@ -1007,6 +996,7 @@ fun AddPhoto(
         }
     }
 }
+
 
 
 
