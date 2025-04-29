@@ -31,8 +31,6 @@ import com.example.expensetracker.FilledButton
 import com.example.expensetracker.R
 import com.example.expensetracker.api.ApiService
 import com.example.expensetracker.data.remote.SessionManager
-import com.example.expensetracker.viewModel.PhotoViewModel
-import com.example.expensetracker.viewModel.PhotoViewModelFactory
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

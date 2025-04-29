@@ -9,10 +9,11 @@ class SignupViewModelFactory(
 ) : ViewModelProvider.Factory {
 
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        if (modelClass.isAssignableFrom(SignupViewModel::class.java)) {
-            @Suppress("UNCHECKED_CAST")
-            return SignupViewModel(authRepository) as T
+        return when {
+            modelClass.isAssignableFrom(SignupViewModel::class.java) -> {
+                SignupViewModel(authRepository) as T
+            }
+            else -> throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
         }
-        throw IllegalArgumentException("Unknown ViewModel class")
     }
 }

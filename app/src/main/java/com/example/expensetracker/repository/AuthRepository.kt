@@ -1,104 +1,115 @@
-import android.util.Log
-import com.example.expensetracker.api.ApiService
-import com.example.expensetracker.data.remote.SessionManager
-import com.example.expensetracker.model.LoginRequest
-import com.example.expensetracker.model.LoginResponse
-import com.example.expensetracker.model.UserResponse
-import okhttp3.MediaType.Companion.toMediaTypeOrNull
-import okhttp3.MultipartBody
-import okhttp3.RequestBody
-import java.io.File
+    import android.util.Log
+    import com.example.expensetracker.api.ApiService
+    import com.example.expensetracker.data.remote.SessionManager
+    import com.example.expensetracker.model.LoginRequest
+    import com.example.expensetracker.model.LoginResponse
+    import com.example.expensetracker.model.UserResponse
+    import okhttp3.MediaType.Companion.toMediaTypeOrNull
+    import okhttp3.MultipartBody
+    import okhttp3.RequestBody
+    import java.io.File
 
-class AuthRepository(
-    private val apiService: ApiService,
-    private val sessionManager: SessionManager
-) {
+    class AuthRepository(
+        private val apiService: ApiService,
+        private val sessionManager: SessionManager
+    ) {
 
-    private fun String.toRequestBody() = RequestBody.create("text/plain".toMediaTypeOrNull(), this)
+        private fun String.toRequestBody() =
+            RequestBody.create("text/plain".toMediaTypeOrNull(), this)
 
-    suspend fun signup(username: String, email: String, password: String, imageFile: File): Result<UserResponse> {
-        return try {
-            val usernamePart = username.toRequestBody()
-            val emailPart = email.toRequestBody()
-            val passwordPart = password.toRequestBody()
+        suspend fun signup(
+            username: String,
+            email: String,
+            password: String,
+            imageFile: File? = null // <-- Make imageFile optional
+        ): Result<UserResponse> {
+            return try {
+                val usernamePart = username.toRequestBody()
+                val emailPart = email.toRequestBody()
+                val passwordPart = password.toRequestBody()
 
-            val response = apiService.signup(usernamePart, emailPart, passwordPart)
+                val response = apiService.signup(usernamePart, emailPart, passwordPart)
 
-            if (response.isSuccessful) {
-                response.body()?.let { userResponse ->
-                    val imageUploadResult = uploadProfileImage(imageFile)
+                if (response.isSuccessful) {
+                    response.body()?.let { userResponse ->
+                        // Only try to upload image if it was provided
+                        if (imageFile != null) {
+                            val imageUploadResult = uploadProfileImage(imageFile)
+                            if (imageUploadResult.isFailure) {
+                                return Result.failure(imageUploadResult.exceptionOrNull() ?: Exception("Image upload failed"))
+                            }
+                        }
 
-                    if (imageUploadResult.isSuccess) {
                         Result.success(userResponse)
-                    } else {
-                        Result.failure(imageUploadResult.exceptionOrNull() ?: Exception("Image upload failed"))
-                    }
-                } ?: Result.failure(Exception("Empty response from server"))
-            } else {
-                val errorMsg = response.errorBody()?.string()
-                Log.e("AuthRepository", "Signup error: ${response.code()} - $errorMsg")
-                Result.failure(Exception("Signup failed: ${response.message()}"))
+                    } ?: Result.failure(Exception("Empty response from server"))
+                } else {
+                    val errorMsg = response.errorBody()?.string()
+                    Log.e("AuthRepository", "Signup error: ${response.code()} - $errorMsg")
+                    Result.failure(Exception("Signup failed: ${response.message()}"))
+                }
+            } catch (e: Exception) {
+                Log.e("AuthRepository", "Exception during signup: ${e.message}")
+                Result.failure(e)
             }
-        } catch (e: Exception) {
-            Log.e("AuthRepository", "Exception during signup: ${e.message}")
-            Result.failure(e)
         }
-    }
 
-    suspend fun uploadProfileImage(imageFile: File): Result<Unit> {
-        return try {
-            val imagePart = MultipartBody.Part.createFormData(
-                "profileImage",
-                imageFile.name,
-                RequestBody.create("multipart/form-data".toMediaTypeOrNull(), imageFile)
-            )
 
-            val response = apiService.uploadImage(imagePart)
+        suspend fun uploadProfileImage(imageFile: File): Result<Unit> {
+            return try {
+                val imagePart = MultipartBody.Part.createFormData(
+                    "profileImage",
+                    imageFile.name,
+                    RequestBody.create("multipart/form-data".toMediaTypeOrNull(), imageFile)
+                )
 
-            if (response.isSuccessful) {
-                Result.success(Unit)
-            } else {
-                val errorMsg = response.errorBody()?.string()
-                Log.e("AuthRepository", "Image upload error: ${response.code()} - $errorMsg")
-                Result.failure(Exception("Image upload failed: ${response.message()}"))
+                val response = apiService.uploadImage(imagePart) // <-- only imagePart, no emailPart
+
+                if (response.isSuccessful) {
+                    Result.success(Unit)
+                } else {
+                    val errorMsg = response.errorBody()?.string()
+                    Log.e("AuthRepository", "Image upload error: ${response.code()} - $errorMsg")
+                    Result.failure(Exception("Image upload failed: ${response.message()}"))
+                }
+            } catch (e: Exception) {
+                Log.e("AuthRepository", "Exception during image upload: ${e.message}")
+                Result.failure(e)
             }
-        } catch (e: Exception) {
-            Log.e("AuthRepository", "Exception during image upload: ${e.message}")
-            Result.failure(e)
         }
-    }
 
-    suspend fun login(email: String, password: String): Result<LoginResponse> {
-        return try {
-            val response = apiService.login(LoginRequest(email, password))
 
-            if (response.isSuccessful) {
-                response.body()?.let {
-                    sessionManager.saveUserSession(it.token, it.username, it.profileImage)
-                    Result.success(it)
-                } ?: Result.failure(Exception("Empty response from server"))
-            } else {
-                val errorMsg = response.errorBody()?.string()
-                Log.e("AuthRepository", "Login error: ${response.code()} - $errorMsg")
-                Result.failure(Exception("Login failed: ${response.message()}"))
+        suspend fun login(email: String, password: String): Result<LoginResponse> {
+            return try {
+                val response = apiService.login(LoginRequest(email, password))
+
+                if (response.isSuccessful) {
+                    response.body()?.let {
+                        sessionManager.saveUserSession(it.token, it.username, it.profileImage)
+                        Result.success(it)
+                    } ?: Result.failure(Exception("Empty response from server"))
+                } else {
+                    val errorMsg = response.errorBody()?.string()
+                    Log.e("AuthRepository", "Login error: ${response.code()} - $errorMsg")
+                    Result.failure(Exception("Login failed: ${response.message()}"))
+                }
+
+            } catch (e: Exception) {
+                Log.e("AuthRepository", "Exception during login: ${e.message}")
+                Result.failure(e)
             }
-
-        } catch (e: Exception) {
-            Log.e("AuthRepository", "Exception during login: ${e.message}")
-            Result.failure(e)
         }
+
+        fun logout() {
+            sessionManager.clearSession()
+            Log.d("AuthRepository", "User logged out successfully")
+        }
+
+        fun isLoggedIn(): Boolean = sessionManager.isLoggedIn()
+
+        fun getUserToken(): String? = sessionManager.getToken()
+
+        fun getUsername(): String? = sessionManager.getUsername()
+
+        fun getProfileImage(): String? = sessionManager.getProfileImage()
     }
 
-    fun logout() {
-        sessionManager.clearSession()
-        Log.d("AuthRepository", "User logged out successfully")
-    }
-
-    fun isLoggedIn(): Boolean = sessionManager.isLoggedIn()
-
-    fun getUserToken(): String? = sessionManager.getToken()
-
-    fun getUsername(): String? = sessionManager.getUsername()
-
-    fun getProfileImage(): String? = sessionManager.getProfileImage()
-}

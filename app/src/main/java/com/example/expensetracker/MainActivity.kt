@@ -1,6 +1,10 @@
 package com.example.expensetracker
 
+import AuthRepository
+import PhotoViewModel
+import PhotoViewModelFactory
 import ProfileScreen
+import SignupSharedViewModel
 import android.content.Context
 import android.content.res.Configuration
 import android.net.Uri
@@ -76,13 +80,12 @@ import com.example.expensetracker.data.remote.SessionManager
 import com.example.expensetracker.ui.theme.ExpenseTrackerTheme
 import com.example.expensetracker.viewModel.LoginViewModel
 import com.example.expensetracker.viewModel.LoginViewModelFactory
-import com.example.expensetracker.viewModel.PhotoViewModel
-import com.example.expensetracker.viewModel.PhotoViewModelFactory
 import com.example.expensetracker.viewModel.SignupViewModel
 import com.example.expensetracker.viewModel.SignupViewModelFactory
 import com.example.walletapp.TransactionHistoryScreen
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.ui.window.Dialog
 
 
 class MainActivity : ComponentActivity() {
@@ -125,17 +128,18 @@ fun MyAppNavigation() {
             LoginScreen(navController, context = LocalContext.current)
         }
 
-        composable("addphoto-screen/{username}/{email}/{password}") { backStackEntry ->
-            val email = backStackEntry.arguments?.getString("email") ?: ""
-
+        composable("addphoto-screen") { backStackEntry ->
             val context = LocalContext.current
             val sessionManager = remember { SessionManager(context) }
             val apiService = remember { ApiService.create(sessionManager) }
-            val photoViewModelFactory = remember { PhotoViewModelFactory(apiService, sessionManager, context) }
+            val authRepository = remember { AuthRepository(apiService, sessionManager) } // ✅ ADD THIS
+            val photoViewModelFactory = remember { PhotoViewModelFactory(authRepository) } // ✅ PASS authRepository
             val photoViewModel: PhotoViewModel = viewModel(factory = photoViewModelFactory)
 
-            AddPhoto(navController, photoViewModel, email)
+            AddPhoto(navController, photoViewModel)
         }
+
+
 
         composable("forgot-pwd")
         {
@@ -145,10 +149,11 @@ fun MyAppNavigation() {
             val context = LocalContext.current
             val sessionManager = remember { SessionManager(context) }
             val apiService = remember { ApiService.create(sessionManager) }
-            val photoViewModelFactory = remember { PhotoViewModelFactory(apiService, sessionManager, context) }
+            val authRepository = remember { AuthRepository(apiService, sessionManager) } // ✅ ADD THIS
+            val photoViewModelFactory = remember { PhotoViewModelFactory(authRepository) } // ✅ PASS authRepository
             val photoViewModel: PhotoViewModel = viewModel(factory = photoViewModelFactory)
 
-            ProfileScreen(navController, context = context, apiService) // ✅ Pass apiService instead of photoViewModel
+            ProfileScreen(navController, photoViewModel) // ✅ Pass apiService instead of photoViewModel
         }
 
 
@@ -450,17 +455,15 @@ fun SignupScreen(
 ) {
     val sessionManager = SessionManager(context)
     val apiService = ApiService.create(sessionManager)
-    val viewModel: SignupViewModel = viewModel(
-        factory = SignupViewModelFactory(apiService, sessionManager)
-    )
- val signupResult by viewModel.signupResult.collectAsState()
-    val isLoading by viewModel.isLoading.collectAsState()
+    val authRepository = AuthRepository(apiService, sessionManager)
 
-    LaunchedEffect(signupResult) {
-        signupResult?.let {
-            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
-        }
-    }
+    val signupViewModel: SignupViewModel = viewModel(
+        factory = SignupViewModelFactory(authRepository)
+    )
+    val signupSharedViewModel: SignupSharedViewModel = viewModel()
+
+    val signupResult by signupViewModel.signupResult.collectAsState()
+    val isLoading by signupViewModel.isLoading.collectAsState()
 
     var username by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
@@ -477,6 +480,24 @@ fun SignupScreen(
     val isPasswordInvalid = passwordTouched && (password.isEmpty() || password.length < 6)
     val isConfirmPasswordInvalid = confirmPasswordTouched && (confirmPassword.isEmpty() || confirmPassword != password)
 
+    LaunchedEffect(signupResult) {
+        signupResult?.let { result ->
+            Toast.makeText(context, result, Toast.LENGTH_SHORT).show()
+
+            if (result == "Signup successful!") {
+                // Save to SharedViewModel
+                signupSharedViewModel.username = username
+                signupSharedViewModel.email = email
+                signupSharedViewModel.password = password
+
+                // Move to Add Photo screen
+                navController.navigate("addphoto-screen") {
+                    popUpTo("signup-screen") { inclusive = true }
+                }
+            }
+        }
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -484,26 +505,54 @@ fun SignupScreen(
             .padding(horizontal = 30.dp, vertical = 50.dp),
         contentAlignment = Alignment.Center
     ) {
+        if (isLoading) {
+            LoadingDialog()
+        }
+
         Column(
             modifier = Modifier.fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text("Sign Up", style = MaterialTheme.typography.headlineLarge.copy(color = Color.White))
-            Text("Please fill in your details to proceed", style = MaterialTheme.typography.bodyLarge.copy(color = Color.White.copy(alpha = 0.8f)))
+            Text(
+                "Please fill in your details to proceed",
+                style = MaterialTheme.typography.bodyLarge.copy(color = Color.White.copy(alpha = 0.8f))
+            )
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Input Fields
-            CustomUnderlineTextField(value = username, onValueChange = { username = it; usernameTouched = true }, placeholder = "Username", isError = isUsernameInvalid)
+            CustomUnderlineTextField(
+                value = username,
+                onValueChange = { username = it; usernameTouched = true },
+                placeholder = "Username",
+                isError = isUsernameInvalid
+            )
             if (isUsernameInvalid) Text("Username must be at least 3 characters", color = Color.Red)
 
-            CustomUnderlineTextField(value = email, onValueChange = { email = it; emailTouched = true }, placeholder = "Email", isError = isEmailInvalid)
+            CustomUnderlineTextField(
+                value = email,
+                onValueChange = { email = it; emailTouched = true },
+                placeholder = "Email",
+                isError = isEmailInvalid
+            )
             if (isEmailInvalid) Text("Enter a valid email", color = Color.Red)
 
-            CustomUnderlineTextField(value = password, onValueChange = { password = it; passwordTouched = true }, placeholder = "Password", isPassword = true, isError = isPasswordInvalid)
+            CustomUnderlineTextField(
+                value = password,
+                onValueChange = { password = it; passwordTouched = true },
+                placeholder = "Password",
+                isPassword = true,
+                isError = isPasswordInvalid
+            )
             if (isPasswordInvalid) Text("Password must be at least 6 characters", color = Color.Red)
 
-            CustomUnderlineTextField(value = confirmPassword, onValueChange = { confirmPassword = it; confirmPasswordTouched = true }, placeholder = "Confirm Password", isPassword = true, isError = isConfirmPasswordInvalid)
+            CustomUnderlineTextField(
+                value = confirmPassword,
+                onValueChange = { confirmPassword = it; confirmPasswordTouched = true },
+                placeholder = "Confirm Password",
+                isPassword = true,
+                isError = isConfirmPasswordInvalid
+            )
             if (isConfirmPasswordInvalid) Text("Passwords do not match", color = Color.Red)
 
             Spacer(modifier = Modifier.height(30.dp))
@@ -512,8 +561,7 @@ fun SignupScreen(
                 title = if (isLoading) "Signing Up..." else "Continue",
                 enabled = !isLoading && !isUsernameInvalid && !isEmailInvalid && !isPasswordInvalid && !isConfirmPasswordInvalid,
                 onClick = {
-                    // Navigate to AddPhotoScreen with user data
-                    navController.navigate("addphoto-screen/${username}/${email}/${password}")
+                    signupViewModel.signUp(username, email, password)
                 }
             )
 
@@ -523,14 +571,27 @@ fun SignupScreen(
     }
 }
 
-
+@Composable
+fun LoadingDialog() {
+    Dialog(onDismissRequest = { /* Disable dismiss by back press */ }) {
+        Box(
+            modifier = Modifier
+                .size(100.dp)
+                .background(MaterialTheme.colorScheme.background, shape = MaterialTheme.shapes.medium),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+        }
+    }
+}
 
 
 @Composable
 fun LoginScreen(navController: NavController, context: Context) {
     val sessionManager = SessionManager(context)
     val apiService = ApiService.create(sessionManager)
-    val viewModel: LoginViewModel = viewModel(factory = LoginViewModelFactory(apiService, sessionManager))
+    val authRepository = AuthRepository(apiService, sessionManager)
+    val viewModel: LoginViewModel = viewModel(factory = LoginViewModelFactory(authRepository))
 
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -545,8 +606,19 @@ fun LoginScreen(navController: NavController, context: Context) {
     val isLoading by viewModel.isLoading.collectAsState()
 
     LaunchedEffect(loginResult) {
-        loginResult?.let {
-            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+        when (loginResult) {
+            "success" -> {
+                navController.navigate("home-screen") {
+                    popUpTo("login-screen") { inclusive = true }
+                }
+            }
+            else -> {
+                loginResult?.let {
+                    if (it != "success") {
+                        Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
         }
     }
 
@@ -560,6 +632,8 @@ fun LoginScreen(navController: NavController, context: Context) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
+        // your UI (unchanged) ...
+
         Row(
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically,
@@ -634,7 +708,7 @@ fun LoginScreen(navController: NavController, context: Context) {
                 title = if (isLoading) "Logging In..." else "Log in",
                 enabled = !isLoading && !isEmailInvalid && !isPasswordInvalid,
                 onClick = {
-                    viewModel.login(email, password, navController)
+                    viewModel.login(email, password) // ✅ only email and password, no navController!
                 }
             )
             Spacer(modifier = Modifier.height(10.dp))
@@ -645,6 +719,7 @@ fun LoginScreen(navController: NavController, context: Context) {
         TextForSignup(navController = navController)
     }
 }
+
 
 
 
@@ -761,35 +836,36 @@ fun CustomUnderlineTextField(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddPhoto(navController: NavController, photoViewModel: PhotoViewModel, email: String) {
+fun AddPhoto(
+    navController: NavController,
+    photoViewModel: PhotoViewModel
+) {
+    val signupSharedViewModel: SignupSharedViewModel = viewModel() // Grabbing it here
+    val email = signupSharedViewModel.email
+
     val bottomSheetState = rememberModalBottomSheetState()
     var showBottomSheet by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
-    // Observe image URI from PhotoViewModel
     val profileImageUri by photoViewModel.profileImageUri.observeAsState()
     var tempImageUri by remember { mutableStateOf<Uri?>(null) }
 
-    // Load saved image when screen loads
     LaunchedEffect(Unit) {
         photoViewModel.loadProfileImage()
     }
 
-    // Camera capture handler
     val takePhotoLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
         if (success && tempImageUri != null) {
             photoViewModel.saveProfileImage(tempImageUri!!)
         }
     }
 
-    // Gallery pick handler
     val pickImageLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         uri?.let {
             photoViewModel.saveProfileImage(it)
         }
     }
 
-    // Bottom sheet for selecting source
     if (showBottomSheet) {
         ModalBottomSheet(
             onDismissRequest = { showBottomSheet = false },
@@ -844,7 +920,6 @@ fun AddPhoto(navController: NavController, photoViewModel: PhotoViewModel, email
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            // Top Section
             Column(
                 modifier = Modifier
                     .align(Alignment.TopCenter)
@@ -858,7 +933,6 @@ fun AddPhoto(navController: NavController, photoViewModel: PhotoViewModel, email
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Profile Image or Placeholder
                 Image(
                     painter = profileImageUri?.let { rememberAsyncImagePainter(it) }
                         ?: painterResource(R.drawable.human_profile),
@@ -868,32 +942,30 @@ fun AddPhoto(navController: NavController, photoViewModel: PhotoViewModel, email
                         .clip(CircleShape)
                 )
 
-                // Upload "+" Icon with Text
                 Spacer(modifier = Modifier.height(12.dp))
 
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier
-                        .clickable {
-                            val selectedUri = profileImageUri
-                            if (selectedUri != null) {
-                                photoViewModel.uploadProfileImage(
-                                    email = email,
-                                    uri = selectedUri,
-                                    onSuccess = {
-                                        Toast.makeText(context, "Profile uploaded!", Toast.LENGTH_SHORT).show()
-                                        navController.navigate("home-screen") {
-                                            popUpTo("addphoto-screen") { inclusive = true }
-                                        }
-                                    },
-                                    onError = { message ->
-                                        Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                    modifier = Modifier.clickable {
+                        val selectedUri = profileImageUri
+                        if (selectedUri != null) {
+                            photoViewModel.uploadProfileImage(
+                                email = email,
+                                uri = selectedUri,
+                                onSuccess = {
+                                    Toast.makeText(context, "Profile uploaded!", Toast.LENGTH_SHORT).show()
+                                    navController.navigate("home-screen") {
+                                        popUpTo("addphoto-screen") { inclusive = true }
                                     }
-                                )
-                            } else {
-                                Toast.makeText(context, "No image selected", Toast.LENGTH_SHORT).show()
-                            }
+                                },
+                                onError = { message ->
+                                    Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                                }
+                            )
+                        } else {
+                            Toast.makeText(context, "No image selected", Toast.LENGTH_SHORT).show()
                         }
+                    }
                 ) {
                     Icon(
                         imageVector = Icons.Default.Add,
@@ -908,7 +980,6 @@ fun AddPhoto(navController: NavController, photoViewModel: PhotoViewModel, email
                 }
             }
 
-            // Bottom Section
             Column(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
@@ -936,6 +1007,7 @@ fun AddPhoto(navController: NavController, photoViewModel: PhotoViewModel, email
         }
     }
 }
+
 
 
 

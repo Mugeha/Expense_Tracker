@@ -1,125 +1,70 @@
-package com.example.expensetracker.viewModel
-
-import android.content.Context
-import android.graphics.Bitmap
+import android.app.Application
+import android.content.ContentResolver
+import android.content.ContentValues
 import android.net.Uri
-import android.util.Log
-import androidx.core.content.FileProvider
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
-import com.example.expensetracker.api.ApiService
-import com.example.expensetracker.data.remote.SessionManager
+import android.provider.MediaStore
+import androidx.lifecycle.*
 import kotlinx.coroutines.launch
-import okhttp3.MediaType.Companion.toMediaTypeOrNull
-import okhttp3.MultipartBody
-import okhttp3.RequestBody
 import java.io.File
-import java.io.FileOutputStream
-import java.io.IOException
 
 class PhotoViewModel(
-    private val apiService: ApiService,
-    private val sessionManager: SessionManager,
-    private val context: Context
-) : ViewModel() {
+    private val app: Application,
+    private val authRepository: AuthRepository
+) : AndroidViewModel(app) { // Notice AndroidViewModel here for context access
 
     private val _profileImageUri = MutableLiveData<Uri?>()
     val profileImageUri: LiveData<Uri?> get() = _profileImageUri
 
-    init {
-        loadProfileImage()
+    private val _uploadResult = MutableLiveData<Result<Unit>>()
+    val uploadResult: LiveData<Result<Unit>> get() = _uploadResult
+
+    private val sharedPrefs = app.getSharedPreferences("user_prefs", Application.MODE_PRIVATE)
+
+    fun saveProfileImage(uri: Uri) {
+        _profileImageUri.value = uri
+        sharedPrefs.edit().putString("profile_image_uri", uri.toString()).apply()
     }
 
     fun loadProfileImage() {
-        val uriString = sessionManager.getProfileImage()
-        val parsedUri = if (!uriString.isNullOrBlank() && uriString != "null") Uri.parse(uriString) else null
-        Log.d("PhotoViewModel", "Loaded profile image URI: $parsedUri")
-        _profileImageUri.postValue(parsedUri)
-    }
-
-    fun saveProfileImage(uri: Uri) {
-        Log.d("PhotoViewModel", "Saving profile image URI: $uri")
-        sessionManager.saveProfileImage(uri.toString())
-        _profileImageUri.postValue(uri)
+        val uriString = sharedPrefs.getString("profile_image_uri", null)
+        _profileImageUri.value = uriString?.let { Uri.parse(it) }
     }
 
     fun createImageUri(): Uri? {
-        val file = File(context.cacheDir, "profile_${System.currentTimeMillis()}.jpg")
-        return try {
-            val uri = FileProvider.getUriForFile(context, "${context.packageName}.provider", file)
-            Log.d("PhotoViewModel", "Created image URI: $uri")
-            uri
-        } catch (e: Exception) {
-            Log.e("PhotoViewModel", "Error creating image URI", e)
-            null
+        val resolver: ContentResolver = app.contentResolver
+        val contentValues = ContentValues().apply {
+            put(MediaStore.MediaColumns.DISPLAY_NAME, "profile_${System.currentTimeMillis()}.jpg")
+            put(MediaStore.MediaColumns.MIME_TYPE, "image/jpeg")
         }
+        return resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)
     }
 
-    fun bitmapToUri(bitmap: Bitmap): Uri? {
-        val file = File(context.cacheDir, "profile_image_${System.currentTimeMillis()}.png")
-        return try {
-            FileOutputStream(file).use { fos ->
-                bitmap.compress(Bitmap.CompressFormat.PNG, 100, fos)
-                fos.flush()
-            }
-            val uri = FileProvider.getUriForFile(context, "${context.packageName}.provider", file)
-            Log.d("PhotoViewModel", "Converted bitmap to URI: $uri")
-            uri
-        } catch (e: IOException) {
-            Log.e("PhotoViewModel", "Error converting bitmap to URI", e)
-            null
-        }
-    }
-
-    fun uploadProfileImage(
-        email: String,
-        uri: Uri,
-        onSuccess: () -> Unit,
-        onError: (String) -> Unit
-    ) {
-        Log.d("PhotoViewModel", "Starting upload for email: $email, URI: $uri")
-
-        val file = File(context.cacheDir, "upload_profile.jpg")
-
-        try {
-            context.contentResolver.openInputStream(uri)?.use { inputStream ->
-                FileOutputStream(file).use { outputStream ->
-                    inputStream.copyTo(outputStream)
-                }
-            }
-            Log.d("PhotoViewModel", "Image file saved locally for upload: ${file.absolutePath}")
-        } catch (e: IOException) {
-            val errorMsg = "Error processing image: ${e.localizedMessage}"
-            Log.e("PhotoViewModel", errorMsg, e)
-            onError(errorMsg)
-            return
-        }
-
-        val requestFile = RequestBody.create("image/*".toMediaTypeOrNull(), file)
-        val imagePart = MultipartBody.Part.createFormData("profileImage", file.name, requestFile)
-        val emailPart = RequestBody.create("text/plain".toMediaTypeOrNull(), email)
-
+    fun uploadProfileImage(email: String, uri: Uri, onSuccess: () -> Unit, onError: (String) -> Unit) {
         viewModelScope.launch {
             try {
-                val response = apiService.uploadImage(emailPart, imagePart)
-                if (response.isSuccessful) {
-                    val uploadedImageUrl = "http://192.168.100.63:8080/uploads/${file.name}"
-                    Log.d("PhotoViewModel", "Upload successful. Image URL: $uploadedImageUrl")
-
-                    saveProfileImage(Uri.parse(uploadedImageUrl))
+                val file = uriToFile(uri)
+                val result = authRepository.uploadProfileImage(email, file)
+                if (result.isSuccess) {
+                    _uploadResult.postValue(Result.success(Unit))
                     onSuccess()
                 } else {
-                    val errorMsg = "Failed to upload image: ${response.code()}"
-                    Log.w("PhotoViewModel", errorMsg)
-                    onError(errorMsg)
+                    _uploadResult.postValue(Result.failure(result.exceptionOrNull() ?: Exception("Upload failed")))
+                    onError(result.exceptionOrNull()?.message ?: "Unknown upload error")
                 }
             } catch (e: Exception) {
-                val errorMsg = "Network error: ${e.localizedMessage}"
-                Log.e("PhotoViewModel", errorMsg, e)
-                onError(errorMsg)
+                _uploadResult.postValue(Result.failure(e))
+                onError(e.message ?: "Unknown error")
             }
         }
+    }
+
+    private fun uriToFile(uri: Uri): File {
+        val inputStream = app.contentResolver.openInputStream(uri)
+            ?: throw IllegalArgumentException("Unable to open input stream for URI")
+        val tempFile = File.createTempFile("upload_", ".jpg", app.cacheDir)
+        tempFile.outputStream().use { outputStream ->
+            inputStream.copyTo(outputStream)
+        }
+        return tempFile
     }
 }
