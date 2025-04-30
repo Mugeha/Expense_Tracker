@@ -1,15 +1,19 @@
 import android.app.Application
 import android.content.ContentResolver
 import android.content.ContentValues
+import android.content.Context
+import android.graphics.Bitmap
 import android.net.Uri
 import android.provider.MediaStore
 import androidx.lifecycle.*
 import kotlinx.coroutines.launch
 import java.io.File
+import java.io.IOException
 
 class PhotoViewModel(
     private val app: Application,
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    private val context: Context
 ) : AndroidViewModel(app) { // Notice AndroidViewModel here for context access
 
     private val _profileImageUri = MutableLiveData<Uri?>()
@@ -39,22 +43,22 @@ class PhotoViewModel(
         return resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)
     }
 
-    fun uploadProfileImage(
-        uri: Uri,
-        onSuccess: () -> Unit,
-        onError: (String) -> Unit
-    ) {
-        val file = uriToFile(uri)
-        if (file != null) {
-            viewModelScope.launch {
-                val result = authRepository.uploadProfileImage(file)
-                result.onSuccess { onSuccess() }
-                    .onFailure { onError(it.message ?: "Upload failed") }
-            }
-        } else {
-            onError("Failed to process image")
+    fun bitmapToUri(bitmap: Bitmap): Uri? {
+        val wrapper = ContextWrapper(context)
+        val file = File(wrapper.getDir("images", Context.MODE_PRIVATE), "${UUID.randomUUID()}.jpg")
+        var stream: FileOutputStream? = null
+        return try {
+            stream = FileOutputStream(file)
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 100, stream)
+            Uri.fromFile(file)
+        } catch (e: IOException) {
+            e.printStackTrace()
+            null
+        } finally {
+            stream?.close()
         }
     }
+
 
 
     private fun uriToFile(uri: Uri): File {

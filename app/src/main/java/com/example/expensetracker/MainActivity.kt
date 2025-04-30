@@ -5,6 +5,7 @@ import PhotoViewModel
 import PhotoViewModelFactory
 import ProfileScreen
 import SignupSharedViewModel
+import android.app.Application
 import android.content.Context
 import android.content.res.Configuration
 import android.net.Uri
@@ -130,14 +131,21 @@ fun MyAppNavigation() {
 
         composable("addphoto-screen") { backStackEntry ->
             val context = LocalContext.current
+            val application = context.applicationContext as Application // ✅ cast to Application
+
             val sessionManager = remember { SessionManager(context) }
             val apiService = remember { ApiService.create(sessionManager) }
-            val authRepository = remember { AuthRepository(apiService, sessionManager) } // ✅ ADD THIS
-            val photoViewModelFactory = remember { PhotoViewModelFactory(authRepository) } // ✅ PASS authRepository
+            val authRepository = remember { AuthRepository(apiService, sessionManager) }
+
+            val photoViewModelFactory = remember {
+                PhotoViewModelFactory(application, authRepository) // ✅ pass both
+            }
+
             val photoViewModel: PhotoViewModel = viewModel(factory = photoViewModelFactory)
 
             AddPhoto(navController, photoViewModel)
         }
+
 
 
 
@@ -147,13 +155,18 @@ fun MyAppNavigation() {
         }
         composable("account-page") {
             val context = LocalContext.current
+            val application = context.applicationContext as Application // ✅ cast to Application
+
             val sessionManager = remember { SessionManager(context) }
-            val apiService = remember { ApiService.create(sessionManager) }
+           val apiService = remember { ApiService.create(sessionManager) }
             val authRepository = remember { AuthRepository(apiService, sessionManager) } // ✅ ADD THIS
-            val photoViewModelFactory = remember { PhotoViewModelFactory(authRepository) } // ✅ PASS authRepository
+            val photoViewModelFactory = remember {
+               PhotoViewModelFactory(application, authRepository) // ✅ pass both
+            }
             val photoViewModel: PhotoViewModel = viewModel(factory = photoViewModelFactory)
 
             ProfileScreen(navController, photoViewModel) // ✅ Pass apiService instead of photoViewModel
+
         }
 
 

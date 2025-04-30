@@ -36,54 +36,40 @@ import com.example.expensetracker.data.remote.SessionManager
 @Composable
 fun ProfileScreen(
     navController: NavController,
-    context: Context,
-    apiService: ApiService // ✅ Pass ApiService instead of PhotoViewModel
+    photoViewModel: PhotoViewModel, // ✅ Already injected properly
+    context: Context
 ) {
-    // ✅ Use LocalContext for correct context reference
     val appContext = LocalContext.current
-
-    // ✅ Initialize SessionManager
     val sessionManager = remember { SessionManager(appContext) }
 
-    // ✅ Fetch user data from SessionManager
     val username = remember { sessionManager.getUsername() }
     val email = remember { sessionManager.getEmail() }
     val storedProfileImage = remember { sessionManager.getProfileImage() }
 
-    // ✅ Initialize ViewModel using PhotoViewModelFactory
-    val photoViewModelFactory = remember { PhotoViewModelFactory(apiService, sessionManager, appContext) }
-    val photoViewModel: PhotoViewModel = viewModel(factory = photoViewModelFactory)
-
-    // ✅ Observe profile image URI from ViewModel
     val profileImageUri by photoViewModel.profileImageUri.observeAsState()
-
-    // ✅ Use the stored image if available, otherwise use ViewModel image
     val finalProfileImage = profileImageUri ?: storedProfileImage
 
     var isLoggingOut by remember { mutableStateOf(false) }
     var isDarkMode by remember { mutableStateOf(false) }
 
-    // Bottom Sheet state
     val sheetState = rememberModalBottomSheetState()
     var showSheet by remember { mutableStateOf(false) }
 
-    // ✅ Gallery launcher
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         uri?.let {
-            photoViewModel.saveProfileImage(it) // Save locally
+            photoViewModel.saveProfileImage(it)
             val userEmail = email ?: return@let
             photoViewModel.uploadProfileImage(
                 email = userEmail,
                 uri = it,
-                onSuccess = { /* Handle success UI updates */ },
-                onError = { errorMessage -> Log.e("ProfileScreen", errorMessage) }
+                onSuccess = { /* show snackbar maybe */ },
+                onError = { Log.e("ProfileScreen", it) }
             )
         }
     }
 
-    // ✅ Camera launcher
     val cameraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicturePreview()
     ) { bitmap: Bitmap? ->
@@ -91,17 +77,17 @@ fun ProfileScreen(
             val uri = photoViewModel.bitmapToUri(it)
             uri?.let { safeUri ->
                 photoViewModel.saveProfileImage(safeUri)
-
                 val userEmail = email ?: return@let
                 photoViewModel.uploadProfileImage(
                     email = userEmail,
                     uri = safeUri,
-                    onSuccess = { /* Handle success */ },
-                    onError = { errorMessage -> Log.e("ProfileScreen", errorMessage) }
+                    onSuccess = { /* show snackbar maybe */ },
+                    onError = { Log.e("ProfileScreen", it) }
                 )
             }
         }
     }
+
 
     // ✅ UI Layout remains unchanged
     Column(
