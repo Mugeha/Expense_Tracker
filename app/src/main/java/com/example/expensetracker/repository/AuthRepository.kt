@@ -85,6 +85,7 @@
                 if (response.isSuccessful) {
                     response.body()?.let {
                         sessionManager.saveUserSession(it.token, it.username, it.profileImage)
+                        sessionManager.saveEmail(it.email) // 👈🏽 Save email too
                         Result.success(it)
                     } ?: Result.failure(Exception("Empty response from server"))
                 } else {
