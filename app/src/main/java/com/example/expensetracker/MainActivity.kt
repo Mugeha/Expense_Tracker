@@ -79,14 +79,14 @@ import androidx.navigation.compose.rememberNavController
 import com.example.expensetracker.api.ApiService
 import com.example.expensetracker.data.remote.SessionManager
 import com.example.expensetracker.ui.theme.ExpenseTrackerTheme
-import com.example.expensetracker.viewModel.LoginViewModel
-import com.example.expensetracker.viewModel.LoginViewModelFactory
-import com.example.expensetracker.viewModel.SignupViewModel
-import com.example.expensetracker.viewModel.SignupViewModelFactory
 import com.example.walletapp.TransactionHistoryScreen
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.ui.window.Dialog
+import com.example.expensetracker.model.UserResponse
+import com.example.expensetracker.viewModel.AuthViewModel
+import com.example.expensetracker.viewModel.AuthViewModelFactory
+import com.example.expensetracker.viewModel.SignupSharedViewModel
 
 
 class MainActivity : ComponentActivity() {
@@ -458,18 +458,19 @@ fun TextForSigningUpOrLoginIn(navController: NavController){
 fun SignupScreen(
     navController: NavController,
     context: Context,
-    signupSharedViewModel: SignupSharedViewModel = viewModel()
 ) {
     val sessionManager = SessionManager(context)
     val apiService = ApiService.create(sessionManager)
     val authRepository = AuthRepository(apiService, sessionManager)
+    val signupSharedViewModel: SignupSharedViewModel = viewModel()
 
-    val signupViewModel: SignupViewModel = viewModel(
-        factory = SignupViewModelFactory(authRepository)
-    )
 
-    val signupResult by signupViewModel.signupResult.collectAsState()
-    val isLoading by signupViewModel.isLoading.collectAsState()
+    val authViewModel: AuthViewModel = viewModel(factory = AuthViewModelFactory(authRepository))
+
+
+    val signupResult by authViewModel.signupResult.collectAsState()
+    val isLoading by authViewModel.isLoading.collectAsState()
+
 
     var username by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
@@ -488,9 +489,9 @@ fun SignupScreen(
 
     LaunchedEffect(signupResult) {
         signupResult?.let { result ->
-            Toast.makeText(context, result, Toast.LENGTH_SHORT).show()
+            result.onSuccess {
+                Toast.makeText(context, "Signup successful", Toast.LENGTH_SHORT).show()
 
-            if (result == "Signup successful!") {
                 signupSharedViewModel.setUsername(username)
                 signupSharedViewModel.setEmail(email)
                 signupSharedViewModel.setPassword(password)
@@ -498,9 +499,15 @@ fun SignupScreen(
                 navController.navigate("addphoto-screen") {
                     popUpTo("signup-screen") { inclusive = true }
                 }
+
+            }.onFailure { error ->
+                Toast.makeText(context, error.message ?: "Signup failed", Toast.LENGTH_SHORT).show()
             }
         }
+
     }
+
+
 
     Box(
         modifier = Modifier
@@ -565,7 +572,7 @@ fun SignupScreen(
                 title = if (isLoading) "Signing Up..." else "Continue",
                 enabled = !isLoading && !isUsernameInvalid && !isEmailInvalid && !isPasswordInvalid && !isConfirmPasswordInvalid,
                 onClick = {
-                    signupViewModel.signUp(username, email, password)
+                    authViewModel.signup(username, email, password)
                 }
             )
 
@@ -596,7 +603,9 @@ fun LoginScreen(navController: NavController, context: Context) {
     val sessionManager = SessionManager(context)
     val apiService = ApiService.create(sessionManager)
     val authRepository = AuthRepository(apiService, sessionManager)
-    val viewModel: LoginViewModel = viewModel(factory = LoginViewModelFactory(authRepository))
+
+    val authViewModel: AuthViewModel = viewModel(factory = AuthViewModelFactory(authRepository))
+
 
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -607,22 +616,18 @@ fun LoginScreen(navController: NavController, context: Context) {
     val isEmailInvalid = emailTouched && (email.isEmpty() || !Patterns.EMAIL_ADDRESS.matcher(email).matches())
     val isPasswordInvalid = passwordTouched && (password.isEmpty() || password.length < 6)
 
-    val loginResult by viewModel.loginResult.collectAsState()
-    val isLoading by viewModel.isLoading.collectAsState()
+    val loginResult by authViewModel.loginResult.collectAsState()
+    val isLoading by authViewModel.isLoading.collectAsState()
+
 
     LaunchedEffect(loginResult) {
-        when (loginResult) {
-            "success" -> {
+        loginResult?.let { result ->
+            result.onSuccess {
                 navController.navigate("home-screen") {
                     popUpTo("login-screen") { inclusive = true }
                 }
-            }
-            else -> {
-                loginResult?.let {
-                    if (it != "success") {
-                        Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
-                    }
-                }
+            }.onFailure { error ->
+                Toast.makeText(context, error.message ?: "Login failed", Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -713,7 +718,7 @@ fun LoginScreen(navController: NavController, context: Context) {
                 title = if (isLoading) "Logging In..." else "Log in",
                 enabled = !isLoading && !isEmailInvalid && !isPasswordInvalid,
                 onClick = {
-                    viewModel.login(email, password) // ✅ only email and password, no navController!
+                    authViewModel.login(email, password)
                 }
             )
             Spacer(modifier = Modifier.height(10.dp))
@@ -953,7 +958,7 @@ fun AddPhoto(
                     modifier = Modifier.clickable {
                         val selectedUri = profileImageUri
                         if (selectedUri != null) {
-                            photoViewModel.uploadProfileImage(
+                            photoViewModel.uploadProfilePhoto(
                                 uri = selectedUri,
                                 onSuccess = {
                                     Toast.makeText(context, "Profile uploaded!", Toast.LENGTH_SHORT).show()
