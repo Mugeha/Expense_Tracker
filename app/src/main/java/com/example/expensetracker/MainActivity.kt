@@ -4,7 +4,6 @@ import AuthRepository
 import PhotoViewModel
 import PhotoViewModelFactory
 import ProfileScreen
-import SignupSharedViewModel
 import android.app.Application
 import android.content.Context
 import android.content.res.Configuration
@@ -961,19 +960,22 @@ fun AddPhoto(
                         if (selectedUri != null) {
                             try {
                                 val file = photoViewModel.uriToFile(selectedUri)
-                                authViewModel.uploadProfilePhoto(file) // ✔️ Pass the File
+                                if (file != null && file.exists()) {
+                                    authViewModel.uploadProfilePhoto(file)
 
-                                Toast.makeText(context, "Profile uploaded!", Toast.LENGTH_SHORT).show()
-                                navController.navigate("home-screen") {
-                                    popUpTo("addphoto-screen") { inclusive = true }
+                                    Toast.makeText(context, "Profile uploaded!", Toast.LENGTH_SHORT).show()
+                                    navController.navigate("home-screen") {
+                                        popUpTo("addphoto-screen") { inclusive = true }
+                                    }
+                                } else {
+                                    Toast.makeText(context, "Failed to convert image to file", Toast.LENGTH_SHORT).show()
                                 }
                             } catch (e: Exception) {
-                                Toast.makeText(context, "Failed to upload photo: ${e.message}", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, "Error uploading photo: ${e.message}", Toast.LENGTH_SHORT).show()
                             }
                         } else {
                             Toast.makeText(context, "No image selected", Toast.LENGTH_SHORT).show()
                         }
-
                     }
                 ) {
                     Icon(
@@ -987,6 +989,7 @@ fun AddPhoto(
                         style = MaterialTheme.typography.bodySmall.copy(color = Color.Gray)
                     )
                 }
+
             }
 
             Column(

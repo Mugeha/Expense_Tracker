@@ -59,12 +59,29 @@ class PhotoViewModel(
     }
 
     fun uriToFile(uri: Uri): File {
-        val inputStream = app.contentResolver.openInputStream(uri)
-            ?: throw IllegalArgumentException("Unable to open input stream for URI")
+        val inputStream = try {
+            app.contentResolver.openInputStream(uri)
+        } catch (e: Exception) {
+            throw IllegalArgumentException("Failed to open input stream: ${e.message}", e)
+        } ?: throw IllegalArgumentException("Unable to open input stream for URI")
+
         val tempFile = File.createTempFile("upload_", ".jpg", app.cacheDir)
-        tempFile.outputStream().use { outputStream ->
-            inputStream.copyTo(outputStream)
+
+        try {
+            tempFile.outputStream().use { outputStream ->
+                inputStream.copyTo(outputStream)
+            }
+        } catch (e: Exception) {
+            throw IllegalStateException("Failed to copy URI content to file: ${e.message}", e)
+        } finally {
+            inputStream.close()
         }
+
+        if (!tempFile.exists() || tempFile.length() == 0L) {
+            throw IllegalStateException("File copy failed or file is empty")
+        }
+
         return tempFile
     }
+
 }
