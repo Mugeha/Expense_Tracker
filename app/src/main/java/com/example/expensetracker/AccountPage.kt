@@ -31,12 +31,14 @@ import com.example.expensetracker.FilledButton
 import com.example.expensetracker.R
 import com.example.expensetracker.api.ApiService
 import com.example.expensetracker.data.remote.SessionManager
+import com.example.expensetracker.viewModel.AuthViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
     navController: NavController,
-    photoViewModel: PhotoViewModel, // ✅ Already injected properly
+    photoViewModel: PhotoViewModel,
+    authViewModel: AuthViewModel,
     context: Context
 ) {
     val appContext = LocalContext.current
@@ -61,10 +63,10 @@ fun ProfileScreen(
         uri?.let {
             photoViewModel.saveProfileImage(it)
             val userEmail = email ?: return@let
-            photoViewModel.uploadProfileImage(
+            authViewModel.uploadProfileImage(
                 email = userEmail,
                 uri = it,
-                onSuccess = { /* show snackbar maybe */ },
+                onSuccess = { /* success */ },
                 onError = { Log.e("ProfileScreen", it) }
             )
         }

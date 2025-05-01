@@ -157,28 +157,35 @@ fun MyAppNavigation() {
             )
         }
 
-
-
-
         composable("forgot-pwd")
         {
             ForgotPasswordPage(navController)
         }
         composable("account-page") {
             val context = LocalContext.current
-            val application = context.applicationContext as Application // ✅ cast to Application
+            val application = context.applicationContext as Application
 
             val sessionManager = remember { SessionManager(context) }
-           val apiService = remember { ApiService.create(sessionManager) }
-            val authRepository = remember { AuthRepository(apiService, sessionManager) } // ✅ ADD THIS
-            val photoViewModelFactory = remember {
-               PhotoViewModelFactory(application, authRepository) // ✅ pass both
-            }
+            val apiService = remember { ApiService.create(sessionManager) }
+            val authRepository = remember { AuthRepository(apiService, sessionManager) }
+
+            val authViewModelFactory = remember { AuthViewModelFactory(authRepository) }
+            val photoViewModelFactory = remember { PhotoViewModelFactory(application, authRepository) }
+
+            val authViewModel: AuthViewModel = viewModel(factory = authViewModelFactory)
             val photoViewModel: PhotoViewModel = viewModel(factory = photoViewModelFactory)
 
-            ProfileScreen(navController, photoViewModel) // ✅ Pass apiService instead of photoViewModel
-
+            ProfileScreen(
+                navController = navController,
+                photoViewModel = photoViewModel,
+                authViewModel = authViewModel,
+                context = context
+            )
         }
+
+
+
+
 
 
         composable("reset-pwd")
