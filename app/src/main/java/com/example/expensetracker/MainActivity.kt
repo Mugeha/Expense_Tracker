@@ -130,19 +130,31 @@ fun MyAppNavigation() {
 
         composable("addphoto-screen") { backStackEntry ->
             val context = LocalContext.current
-            val application = context.applicationContext as Application // ✅ cast to Application
+            val application = context.applicationContext as Application
 
             val sessionManager = remember { SessionManager(context) }
             val apiService = remember { ApiService.create(sessionManager) }
             val authRepository = remember { AuthRepository(apiService, sessionManager) }
 
+            // ViewModels
             val photoViewModelFactory = remember {
-                PhotoViewModelFactory(application, authRepository) // ✅ pass both
+                PhotoViewModelFactory(application, authRepository)
             }
-
             val photoViewModel: PhotoViewModel = viewModel(factory = photoViewModelFactory)
 
-            AddPhoto(navController, photoViewModel)
+            val authViewModelFactory = remember {
+                AuthViewModelFactory(authRepository)
+            }
+            val authViewModel: AuthViewModel = viewModel(factory = authViewModelFactory)
+
+            val signupSharedViewModel: SignupSharedViewModel = viewModel(backStackEntry)
+
+            AddPhoto(
+                navController = navController,
+                photoViewModel = photoViewModel,
+                authViewModel = authViewModel,
+                signupSharedViewModel = signupSharedViewModel
+            )
         }
 
 
