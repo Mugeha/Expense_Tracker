@@ -849,6 +849,7 @@ fun CustomUnderlineTextField(
 fun AddPhoto(
     navController: NavController,
     photoViewModel: PhotoViewModel,
+    authViewModel: AuthViewModel, // ✅ Injected AuthViewModel
     signupSharedViewModel: SignupSharedViewModel = viewModel()
 ) {
     val email = signupSharedViewModel.email
@@ -958,23 +959,22 @@ fun AddPhoto(
                     modifier = Modifier.clickable {
                         val selectedUri = profileImageUri
                         if (selectedUri != null) {
-                            photoViewModel.uploadProfilePhoto(
-                                uri = selectedUri,
-                                onSuccess = {
-                                    Toast.makeText(context, "Profile uploaded!", Toast.LENGTH_SHORT).show()
-                                    navController.navigate("home-screen") {
-                                        popUpTo("addphoto-screen") { inclusive = true }
-                                    }
-                                },
-                                onError = { message ->
-                                    Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                            try {
+                                val file = photoViewModel.uriToFile(selectedUri)
+                                authViewModel.uploadProfilePhoto(file) // ✔️ Pass the File
+
+                                Toast.makeText(context, "Profile uploaded!", Toast.LENGTH_SHORT).show()
+                                navController.navigate("home-screen") {
+                                    popUpTo("addphoto-screen") { inclusive = true }
                                 }
-                            )
+                            } catch (e: Exception) {
+                                Toast.makeText(context, "Failed to upload photo: ${e.message}", Toast.LENGTH_SHORT).show()
+                            }
                         } else {
                             Toast.makeText(context, "No image selected", Toast.LENGTH_SHORT).show()
                         }
-                    }
 
+                    }
                 ) {
                     Icon(
                         imageVector = Icons.Default.Add,
@@ -1014,6 +1014,7 @@ fun AddPhoto(
         }
     }
 }
+
 
 
 
