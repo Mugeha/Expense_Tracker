@@ -44,7 +44,7 @@ class AuthViewModel(private val authRepository: AuthRepository) : ViewModel() {
     fun uploadProfilePhoto(photoFile: File) {
         viewModelScope.launch {
             _isLoading.value = true
-            val result = authRepository.uploadProfileImage(photoFile)
+            val result = authRepository.uploadProfilePhoto(photoFile)
             _uploadResult.value = result
             _isLoading.value = false
         }

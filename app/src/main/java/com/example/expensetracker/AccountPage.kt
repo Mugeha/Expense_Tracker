@@ -63,7 +63,7 @@ fun ProfileScreen(
         uri?.let {
             photoViewModel.saveProfileImage(it)
             val userEmail = email ?: return@let
-            authViewModel.uploadProfileImage(
+            authViewModel.uploadProfilePhoto(
                 email = userEmail,
                 uri = it,
                 onSuccess = { /* success */ },
@@ -80,7 +80,7 @@ fun ProfileScreen(
             uri?.let { safeUri ->
                 photoViewModel.saveProfileImage(safeUri)
                 val userEmail = email ?: return@let
-                photoViewModel.uploadProfileImage(
+                photoViewModel.uploadProfilePhoto(
                     email = userEmail,
                     uri = safeUri,
                     onSuccess = { /* show snackbar maybe */ },

@@ -34,7 +34,7 @@
                     response.body()?.let { userResponse ->
                         // Only try to upload image if it was provided
                         if (imageFile != null) {
-                            val imageUploadResult = uploadProfileImage(imageFile)
+                            val imageUploadResult = uploadProfilePhoto(imageFile)
                             if (imageUploadResult.isFailure) {
                                 return Result.failure(imageUploadResult.exceptionOrNull() ?: Exception("Image upload failed"))
                             }
@@ -54,7 +54,7 @@
         }
 
 
-        suspend fun uploadProfileImage(imageFile: File): Result<Unit> {
+        suspend fun uploadProfilePhoto(imageFile: File): Result<Unit> {
             return try {
                 val imagePart = MultipartBody.Part.createFormData(
                     "profileImage",
