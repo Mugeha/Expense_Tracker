@@ -62,15 +62,16 @@ fun ProfileScreen(
     ) { uri: Uri? ->
         uri?.let {
             photoViewModel.saveProfileImage(it)
-            val userEmail = email ?: return@let
-            authViewModel.uploadProfilePhoto(
-                email = userEmail,
-                uri = it,
-                onSuccess = { /* success */ },
-                onError = { Log.e("ProfileScreen", it) }
-            )
+
+            try {
+                val file = photoViewModel.uriToFile(it)
+                authViewModel.uploadProfilePhoto(photoFile = file)
+            } catch (e: Exception) {
+                Log.e("ProfileScreen", "Gallery Upload Error: ${e.message}")
+            }
         }
     }
+
 
     val cameraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicturePreview()
@@ -79,16 +80,17 @@ fun ProfileScreen(
             val uri = photoViewModel.bitmapToUri(it)
             uri?.let { safeUri ->
                 photoViewModel.saveProfileImage(safeUri)
-                val userEmail = email ?: return@let
-                photoViewModel.uploadProfilePhoto(
-                    email = userEmail,
-                    uri = safeUri,
-                    onSuccess = { /* show snackbar maybe */ },
-                    onError = { Log.e("ProfileScreen", it) }
-                )
+
+                try {
+                    val file = photoViewModel.uriToFile(safeUri)
+                    authViewModel.uploadProfilePhoto(photoFile = file)
+                } catch (e: Exception) {
+                    Log.e("ProfileScreen", "Camera Upload Error: ${e.message}")
+                }
             }
         }
     }
+
 
 
     // ✅ UI Layout remains unchanged
