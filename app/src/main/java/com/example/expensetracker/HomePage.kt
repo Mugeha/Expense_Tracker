@@ -1,5 +1,6 @@
 package com.example.expensetracker
 
+import PhotoViewModel
 import android.content.Context
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -25,32 +26,32 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import com.example.expensetracker.data.remote.SessionManager
-import com.example.expensetracker.viewModel.PhotoViewModel
 
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(navController: NavController, context: Context, photoViewModel: PhotoViewModel) {
+fun HomeScreen(
+    navController: NavController,
+    context: Context,
+    photoViewModel: PhotoViewModel
+) {
     var expanded by remember { mutableStateOf(false) }
     var balanceVisible by remember { mutableStateOf(false) }
     var selectedPeriod by remember { mutableStateOf("This Week") }
 
-    // ✅ Fetch user session data directly from SessionManager
+    // ✅ Pull session data
     val sessionManager = remember { SessionManager(context) }
-    val username = remember { sessionManager.getUsername() }  // Fetch stored username
-    val storedProfileImage = remember { sessionManager.getProfileImage() } // Fetch stored profile image URL
+    val username = remember { sessionManager.getUsername() ?: "User" }
+    val storedProfileImage = remember { sessionManager.getProfileImage() }
 
-    // ✅ Observe image URI from ViewModel
+    // ✅ Observe updated profile image from ViewModel
     val imageUri by photoViewModel.profileImageUri.observeAsState()
-
-    // ✅ Use locally stored image if available, otherwise use the image from the backend
     val finalProfileImage = imageUri ?: storedProfileImage
 
-    // ✅ Load profile image only when the screen is launched
+    // ✅ Only run once on HomeScreen launch
     LaunchedEffect(Unit) {
-        photoViewModel.loadProfileImage() // ✅ No arguments needed
+        photoViewModel.loadProfileImage()
     }
-
 
     Scaffold(
         bottomBar = {
@@ -63,12 +64,10 @@ fun HomeScreen(navController: NavController, context: Context, photoViewModel: P
                 .padding(paddingValues)
                 .padding(16.dp)
         ) {
-            // ✅ User Profile Section
+            // ✅ Profile Section
             Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Start
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                // ✅ Display Profile Image (From Local Cache or Backend)
                 Image(
                     painter = finalProfileImage?.let { rememberAsyncImagePainter(it) }
                         ?: painterResource(R.drawable.human_profile),
@@ -81,10 +80,8 @@ fun HomeScreen(navController: NavController, context: Context, photoViewModel: P
                         }
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-
-                // ✅ Display Username (From SessionManager)
                 Text(
-                    text = "Welcome, \n${username ?: "User"}", // Default to "User" if username is null
+                    text = "Welcome, \n$username",
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Normal,
                 )
@@ -119,8 +116,7 @@ fun HomeScreen(navController: NavController, context: Context, photoViewModel: P
                     ) {
                         Text(
                             text = "Balance",
-                            color = Color.White,
-                            modifier = Modifier.align(Alignment.Start)
+                            color = Color.White
                         )
 
                         Row(
@@ -134,14 +130,13 @@ fun HomeScreen(navController: NavController, context: Context, photoViewModel: P
                                 fontSize = 24.sp,
                                 fontWeight = FontWeight.Bold
                             )
-
                             IconButton(onClick = { balanceVisible = !balanceVisible }) {
                                 Icon(
                                     painter = painterResource(
                                         id = if (balanceVisible) R.drawable.view_password_3__1_
                                         else R.drawable.view_password_negative
                                     ),
-                                    contentDescription = if (balanceVisible) "Hide Balance" else "Show Balance",
+                                    contentDescription = null,
                                     tint = Color.White,
                                     modifier = Modifier.size(24.dp)
                                 )
@@ -153,26 +148,19 @@ fun HomeScreen(navController: NavController, context: Context, photoViewModel: P
 
             Spacer(modifier = Modifier.height(5.dp))
 
-            // ✅ Dashboard Section
             DashboardScreen(navController = navController)
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // ✅ Summary Section
+            // ✅ Summary section
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(start = 16.dp, end = 26.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text(
-                    text = "Summary",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold
-                )
+                Text("Summary", fontSize = 18.sp, fontWeight = FontWeight.Bold)
 
-                // Dropdown for Period Selection
                 Box(
                     modifier = Modifier
                         .wrapContentSize()
@@ -203,13 +191,7 @@ fun HomeScreen(navController: NavController, context: Context, photoViewModel: P
                                     selectedPeriod = item
                                     expanded = false
                                 },
-                                text = {
-                                    Text(
-                                        text = item,
-                                        color = Color.DarkGray,
-                                        modifier = Modifier.padding(vertical = 4.dp)
-                                    )
-                                }
+                                text = { Text(item, color = Color.DarkGray) }
                             )
                         }
                     }
@@ -217,8 +199,6 @@ fun HomeScreen(navController: NavController, context: Context, photoViewModel: P
             }
 
             Spacer(modifier = Modifier.height(16.dp))
-
-            // ✅ Transaction List (Scrollable)
             TransactionList()
         }
     }
