@@ -231,8 +231,8 @@ fun getCategoryIcon(category: String): Int {
     }
 }
 
-@Preview(showBackground = true)
-@Composable
-fun AddIncomeScreenPreview() {
-    AddIncomeScreen(navController = NavController(LocalContext.current))
-}
+//@Preview(showBackground = true)
+//@Composable
+//fun AddIncomeScreenPreview() {
+//    AddIncomeScreen(navController = NavController(LocalContext.current))
+//}

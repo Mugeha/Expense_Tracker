@@ -82,7 +82,6 @@ import com.example.walletapp.TransactionHistoryScreen
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.ui.window.Dialog
-import com.example.expensetracker.model.UserResponse
 import com.example.expensetracker.viewModel.AuthViewModel
 import com.example.expensetracker.viewModel.AuthViewModelFactory
 import com.example.expensetracker.viewModel.SignupSharedViewModel
@@ -138,7 +137,7 @@ fun MyAppNavigation() {
 
             // ViewModels
             val photoViewModelFactory = remember {
-                PhotoViewModelFactory(application, authRepository)
+                PhotoViewModelFactory(application, context)
             }
             val photoViewModel: PhotoViewModel = viewModel(factory = photoViewModelFactory)
 
@@ -161,7 +160,7 @@ fun MyAppNavigation() {
         {
             ForgotPasswordPage(navController)
         }
-        composable("account-page") {
+        composable("account-page") { navBackStackEntry ->
             val context = LocalContext.current
             val application = context.applicationContext as Application
 
@@ -169,11 +168,15 @@ fun MyAppNavigation() {
             val apiService = remember { ApiService.create(sessionManager) }
             val authRepository = remember { AuthRepository(apiService, sessionManager) }
 
-            val authViewModelFactory = remember { AuthViewModelFactory(authRepository) }
-            val photoViewModelFactory = remember { PhotoViewModelFactory(application, authRepository) }
+            val authViewModel: AuthViewModel = viewModel(
+                factory = AuthViewModelFactory(authRepository),
+                viewModelStoreOwner = navBackStackEntry
+            )
 
-            val authViewModel: AuthViewModel = viewModel(factory = authViewModelFactory)
-            val photoViewModel: PhotoViewModel = viewModel(factory = photoViewModelFactory)
+            val photoViewModel: PhotoViewModel = viewModel(
+                factory = PhotoViewModelFactory(application, context),
+                viewModelStoreOwner = navBackStackEntry
+            )
 
             ProfileScreen(
                 navController = navController,
@@ -182,6 +185,7 @@ fun MyAppNavigation() {
                 context = context
             )
         }
+
 
 
 
