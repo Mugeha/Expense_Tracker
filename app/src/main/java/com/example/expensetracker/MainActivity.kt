@@ -13,6 +13,7 @@ import android.util.Patterns
 import android.widget.Toast
 import coil.compose.rememberAsyncImagePainter
 import androidx.activity.ComponentActivity
+import com.google.accompanist.permissions.rememberPermissionState
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -85,6 +86,8 @@ import androidx.compose.ui.window.Dialog
 import com.example.expensetracker.viewModel.AuthViewModel
 import com.example.expensetracker.viewModel.AuthViewModelFactory
 import com.example.expensetracker.viewModel.SignupSharedViewModel
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.isGranted
 
 
 class MainActivity : ComponentActivity() {
@@ -876,12 +879,12 @@ fun CustomUnderlineTextField(
 }
 
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
 @Composable
 fun AddPhoto(
     navController: NavController,
     photoViewModel: PhotoViewModel,
-    authViewModel: AuthViewModel, // ✅ Injected AuthViewModel
+    authViewModel: AuthViewModel,
     signupSharedViewModel: SignupSharedViewModel
 ) {
     val email = signupSharedViewModel.email
@@ -895,6 +898,9 @@ fun AddPhoto(
     LaunchedEffect(Unit) {
         photoViewModel.loadProfileImage()
     }
+
+    // 🔥 New: permission state for CAMERA
+    val cameraPermissionState = rememberPermissionState(android.Manifest.permission.CAMERA)
 
     val takePhotoLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
         if (success && tempImageUri != null) {
@@ -922,10 +928,16 @@ fun AddPhoto(
                 WhiteButtonWithDarkText(
                     onClick = {
                         showBottomSheet = false
-                        val newUri = photoViewModel.createImageUri()
-                        if (newUri != null) {
-                            tempImageUri = newUri
-                            takePhotoLauncher.launch(newUri)
+
+                        // 🔥 Check and request camera permission
+                        if (cameraPermissionState.status.isGranted) {
+                            val newUri = photoViewModel.createImageUri()
+                            if (newUri != null) {
+                                tempImageUri = newUri
+                                takePhotoLauncher.launch(newUri)
+                            }
+                        } else {
+                            cameraPermissionState.launchPermissionRequest()
                         }
                     },
                     title = "Take Photo"
@@ -993,9 +1005,8 @@ fun AddPhoto(
                         if (selectedUri != null) {
                             try {
                                 val file = photoViewModel.uriToFile(selectedUri)
-                                if (file != null && file.exists()) {
+                                if (file.exists()) {
                                     authViewModel.uploadProfilePhoto(file)
-
                                     Toast.makeText(context, "Profile uploaded!", Toast.LENGTH_SHORT).show()
                                     navController.navigate("home-screen") {
                                         popUpTo("addphoto-screen") { inclusive = true }
@@ -1022,7 +1033,6 @@ fun AddPhoto(
                         style = MaterialTheme.typography.bodySmall.copy(color = Color.Gray)
                     )
                 }
-
             }
 
             Column(
@@ -1035,9 +1045,7 @@ fun AddPhoto(
                     onClick = { showBottomSheet = true },
                     title = "Choose a photo"
                 )
-
                 Spacer(modifier = Modifier.height(10.dp))
-
                 WhiteButtonWithStroke(
                     onClick = {
                         navController.navigate("home-screen") {
@@ -1050,6 +1058,7 @@ fun AddPhoto(
         }
     }
 }
+
 
 
 

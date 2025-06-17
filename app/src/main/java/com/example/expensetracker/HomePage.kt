@@ -73,7 +73,7 @@ fun HomeScreen(
                         ?: painterResource(R.drawable.human_profile),
                     contentDescription = "Profile Picture",
                     modifier = Modifier
-                        .size(140.dp)
+                        .size(80.dp)
                         .clip(CircleShape)
                         .clickable {
                             navController.navigate("account-page")

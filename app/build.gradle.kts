@@ -54,6 +54,8 @@ dependencies {
 
     implementation(libs.androidx.core.ktx)
     implementation ("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation ("com.google.accompanist:accompanist-permissions:0.35.0-alpha")
+
     implementation(libs.coil.compose)
     implementation(libs.androidx.activity.compose.v182)
     implementation(libs.androidx.lifecycle.runtime.compose)
