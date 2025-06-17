@@ -135,16 +135,13 @@ fun MyAppNavigation() {
             val apiService = remember { ApiService.create(sessionManager) }
             val authRepository = remember { AuthRepository(apiService, sessionManager) }
 
-            // ViewModels
-            val photoViewModelFactory = remember {
-                PhotoViewModelFactory(application, context)
-            }
-            val photoViewModel: PhotoViewModel = viewModel(factory = photoViewModelFactory)
+            val photoViewModel: PhotoViewModel = viewModel(
+                factory = PhotoViewModelFactory(application, context)
+            )
 
-            val authViewModelFactory = remember {
-                AuthViewModelFactory(authRepository)
-            }
-            val authViewModel: AuthViewModel = viewModel(factory = authViewModelFactory)
+            val authViewModel: AuthViewModel = viewModel(
+                factory = AuthViewModelFactory(authRepository)
+            )
 
             val signupSharedViewModel: SignupSharedViewModel = viewModel(backStackEntry)
 
@@ -155,6 +152,7 @@ fun MyAppNavigation() {
                 signupSharedViewModel = signupSharedViewModel
             )
         }
+
 
         composable("forgot-pwd")
         {
@@ -872,7 +870,7 @@ fun AddPhoto(
     navController: NavController,
     photoViewModel: PhotoViewModel,
     authViewModel: AuthViewModel, // ✅ Injected AuthViewModel
-    signupSharedViewModel: SignupSharedViewModel = viewModel()
+    signupSharedViewModel: SignupSharedViewModel
 ) {
     val email = signupSharedViewModel.email
     val bottomSheetState = rememberModalBottomSheetState()

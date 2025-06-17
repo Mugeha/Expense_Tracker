@@ -77,5 +77,4 @@ class PhotoViewModel(
         return tempFile
     }
 
-
 }
