@@ -204,9 +204,20 @@ fun MyAppNavigation() {
         }
 
         composable("home-screen") {
-            val photoViewModel: PhotoViewModel = viewModel()
-            HomeScreen(navController, context = LocalContext.current, photoViewModel)
+            val context = LocalContext.current
+            val application = context.applicationContext as Application
+
+            val photoViewModel: PhotoViewModel = viewModel(
+                factory = PhotoViewModelFactory(application, context)
+            )
+
+            HomeScreen(
+                navController = navController,
+                context = context,
+                photoViewModel = photoViewModel
+            )
         }
+
 
         composable("add-expense-screen") {
             AddExpenseScreen(navController)
