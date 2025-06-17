@@ -657,7 +657,16 @@ fun LoginScreen(navController: NavController, context: Context) {
 
     LaunchedEffect(loginResult) {
         loginResult?.let { result ->
-            result.onSuccess {
+            result.onSuccess { response ->
+                // ✅ Save everything to session
+                sessionManager.saveUserSession(
+                    token = response.token,
+                    username = response.username,
+                    profileImage = response.profileImage
+                )
+                sessionManager.saveEmail(response.email)
+
+                // ✅ Navigate to home screen
                 navController.navigate("home-screen") {
                     popUpTo("login-screen") { inclusive = true }
                 }
@@ -666,6 +675,9 @@ fun LoginScreen(navController: NavController, context: Context) {
             }
         }
     }
+
+
+
 
     val image = painterResource(R.drawable.waving_hand)
 
