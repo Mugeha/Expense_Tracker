@@ -88,6 +88,8 @@ import com.example.expensetracker.viewModel.AuthViewModelFactory
 import com.example.expensetracker.viewModel.SignupSharedViewModel
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
+import kotlinx.coroutines.delay
+
 
 
 class MainActivity : ComponentActivity() {
@@ -363,6 +365,16 @@ fun WhiteButton(onClick: () -> Unit = {}, title: String) {
 
 @Composable
 fun TeaserScreen(navController: NavController, context: Context) {
+    val sessionManager = remember { SessionManager(context) }
+
+    // ✅ Auto-navigation logic
+    LaunchedEffect(Unit) {
+        delay(1000) // Optional splash delay
+        if (sessionManager.isLoggedIn()) {
+            navController.popBackStack()
+            navController.navigate("home-screen")
+        }
+    }
 
     val image = painterResource(R.drawable.background_image)
     val configuration = LocalConfiguration.current
@@ -392,7 +404,6 @@ fun TeaserScreen(navController: NavController, context: Context) {
             verticalArrangement = Arrangement.Top,
             horizontalAlignment = Alignment.Start
         ) {
-            // Title
             Text(
                 text = "Always Track\nYour Expenses",
                 style = MaterialTheme.typography.titleLarge.copy(
@@ -403,7 +414,6 @@ fun TeaserScreen(navController: NavController, context: Context) {
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // Subtitle
             Text(
                 text = "Now you can track expense records\non your phone",
                 style = MaterialTheme.typography.bodyLarge.copy(color = Color.White)
@@ -411,7 +421,6 @@ fun TeaserScreen(navController: NavController, context: Context) {
 
             Spacer(modifier = Modifier.height(if (isPortrait) 30.dp else 20.dp))
 
-            // Button and Login Prompt
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.Top,
@@ -430,6 +439,7 @@ fun TeaserScreen(navController: NavController, context: Context) {
         }
     }
 }
+
 
 @Composable
 fun FilledButton(
