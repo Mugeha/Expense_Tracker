@@ -903,6 +903,7 @@ fun AddPhoto(
     val bottomSheetState = rememberModalBottomSheetState()
     var showBottomSheet by remember { mutableStateOf(false) }
     val context = LocalContext.current
+    val sessionManager = remember { SessionManager(context) }
 
     val profileImageUri by photoViewModel.profileImageUri.observeAsState()
     var tempImageUri by remember { mutableStateOf<Uri?>(null) }
@@ -911,7 +912,6 @@ fun AddPhoto(
         photoViewModel.loadProfileImage()
     }
 
-    // 🔥 New: permission state for CAMERA
     val cameraPermissionState = rememberPermissionState(android.Manifest.permission.CAMERA)
 
     val takePhotoLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
@@ -940,8 +940,6 @@ fun AddPhoto(
                 WhiteButtonWithDarkText(
                     onClick = {
                         showBottomSheet = false
-
-                        // 🔥 Check and request camera permission
                         if (cameraPermissionState.status.isGranted) {
                             val newUri = photoViewModel.createImageUri()
                             if (newUri != null) {
@@ -1019,6 +1017,10 @@ fun AddPhoto(
                                 val file = photoViewModel.uriToFile(selectedUri)
                                 if (file.exists()) {
                                     authViewModel.uploadProfilePhoto(file)
+
+                                    // ✅ Save uploaded image path to session
+                                    sessionManager.saveProfileImage(selectedUri.toString())
+
                                     Toast.makeText(context, "Profile uploaded!", Toast.LENGTH_SHORT).show()
                                     navController.navigate("home-screen") {
                                         popUpTo("addphoto-screen") { inclusive = true }
@@ -1070,6 +1072,7 @@ fun AddPhoto(
         }
     }
 }
+
 
 
 
