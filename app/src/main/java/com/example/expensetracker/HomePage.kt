@@ -39,18 +39,20 @@ fun HomeScreen(
     var balanceVisible by remember { mutableStateOf(false) }
     var selectedPeriod by remember { mutableStateOf("This Week") }
 
-    // ✅ Pull session data
     val sessionManager = remember { SessionManager(context) }
-    val username = remember { sessionManager.getUsername() ?: "User" }
-    val storedProfileImage = remember { sessionManager.getProfileImage() }
 
-    // ✅ Observe updated profile image from ViewModel
+    // ✅ Use rememberUpdatedState to observe latest values
+    val username by rememberUpdatedState(newValue = sessionManager.getUsername() ?: "User")
+    val storedProfileImage = sessionManager.getProfileImage()
+
+    // ✅ Observe viewmodel image (if set during this session)
     val imageUri by photoViewModel.profileImageUri.observeAsState()
+
+    // ✅ Final fallback priority: session -> viewmodel
     val finalProfileImage = imageUri ?: storedProfileImage
 
-    // ✅ Only run once on HomeScreen launch
     LaunchedEffect(Unit) {
-        photoViewModel.loadProfileImage()
+        photoViewModel.loadProfileImage() // will use shared prefs if available
     }
 
     Scaffold(
@@ -203,6 +205,7 @@ fun HomeScreen(
         }
     }
 }
+
 
 
 
