@@ -1071,12 +1071,14 @@ fun AddPhoto(
                 Spacer(modifier = Modifier.height(10.dp))
                 WhiteButtonWithStroke(
                     onClick = {
+                        photoViewModel.clearProfileImage() // ✅ Clear temp image from last user
                         navController.navigate("home-screen") {
                             popUpTo("addphoto-screen") { inclusive = true }
                         }
                     },
                     title = "Maybe Later"
                 )
+
             }
         }
     }
