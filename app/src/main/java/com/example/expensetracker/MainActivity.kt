@@ -364,13 +364,18 @@ fun WhiteButton(onClick: () -> Unit = {}, title: String) {
 }
 
 @Composable
-fun TeaserScreen(navController: NavController, context: Context) {
+fun TeaserScreen(
+    navController: NavController,
+    context: Context
+) {
     val sessionManager = remember { SessionManager(context) }
+    val photoViewModel: PhotoViewModel = viewModel() // Add this if you're using ViewModel-based image caching
 
-    // ✅ Auto-navigation logic
+    // ✅ Auto-navigation logic with session restoration
     LaunchedEffect(Unit) {
         delay(1000) // Optional splash delay
         if (sessionManager.isLoggedIn()) {
+            photoViewModel.loadProfileImage() // ✅ Load correct image from session
             navController.popBackStack()
             navController.navigate("home-screen")
         }
@@ -439,6 +444,7 @@ fun TeaserScreen(navController: NavController, context: Context) {
         }
     }
 }
+
 
 
 @Composable
