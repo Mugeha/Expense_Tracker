@@ -1,15 +1,19 @@
 package com.example.expensetracker.viewModel
 
 import AuthRepository
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.expensetracker.data.remote.SessionManager
 import com.example.expensetracker.model.LoginResponse
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import java.io.File
 
-class AuthViewModel(private val authRepository: AuthRepository) : ViewModel() {
+class AuthViewModel(
+    private val authRepository: AuthRepository
+) : ViewModel() {
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
@@ -20,14 +24,21 @@ class AuthViewModel(private val authRepository: AuthRepository) : ViewModel() {
     private val _loginResult = MutableStateFlow<Result<LoginResponse>?>(null)
     val loginResult: StateFlow<Result<LoginResponse>?> = _loginResult
 
-    private val _uploadResult = MutableStateFlow<Result<Unit>?>(null)
-    val uploadResult: StateFlow<Result<Unit>?> = _uploadResult
+    private val _uploadResult = MutableStateFlow<Result<String>?>(null) // String = uploaded image URL
+    val uploadResult: StateFlow<Result<String>?> = _uploadResult
+
+    // 🔐 Save the sessionManager instance for later use
+    private var sessionManager: SessionManager? = null
+
+    fun setSessionManager(manager: SessionManager) {
+        sessionManager = manager
+    }
 
     fun signup(name: String, email: String, password: String, imageFile: File? = null) {
         viewModelScope.launch {
             _isLoading.value = true
             val result = authRepository.signup(name, email, password, imageFile)
-            _signupResult.value = result.map { Unit } // convert to Unit to avoid leaking response
+            _signupResult.value = result.map { Unit }
             _isLoading.value = false
         }
     }
@@ -46,6 +57,15 @@ class AuthViewModel(private val authRepository: AuthRepository) : ViewModel() {
             _isLoading.value = true
             val result = authRepository.uploadProfilePhoto(photoFile)
             _uploadResult.value = result
+
+            // ✅ Save profile image URL to session
+            result.onSuccess { imageUrl ->
+                sessionManager?.saveProfileImage(imageUrl)
+                Log.d("AuthViewModel", "Saved profile image to session: $imageUrl")
+            }.onFailure {
+                Log.e("AuthViewModel", "Upload failed: ${it.message}")
+            }
+
             _isLoading.value = false
         }
     }

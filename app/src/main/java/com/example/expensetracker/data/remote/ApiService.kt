@@ -4,6 +4,7 @@ import com.example.expensetracker.model.LoginRequest
 import com.example.expensetracker.model.LoginResponse
 import com.example.expensetracker.model.UserResponse
 import com.example.expensetracker.data.remote.SessionManager
+import com.example.expensetracker.model.ImageUploadResponse
 import com.example.expensetracker.util.Constants
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
@@ -32,7 +33,7 @@ interface ApiService {
     @POST("api/auth/upload-image")
     suspend fun uploadImage(
         @Part profileImage: MultipartBody.Part
-    ): Response<Unit>
+    ): Response<ImageUploadResponse>
 
     // ✅ Login (Step 3)
     @POST("api/auth/login")
