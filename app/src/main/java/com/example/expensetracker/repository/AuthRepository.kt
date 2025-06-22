@@ -71,10 +71,10 @@ class AuthRepository(
             if (response.isSuccessful) {
                 val imageUrl = response.body()?.profileImage
                 if (!imageUrl.isNullOrEmpty()) {
-                    sessionManager.saveProfileImage(imageUrl)
+                    sessionManager.saveProfileImage(imageUrl) // ✅ Save the image URL
                     Result.success(imageUrl)
                 } else {
-                    Result.failure(Exception("Image URL missing in response"))
+                    Result.failure(Exception("Server did not return image URL"))
                 }
             } else {
                 val errorMsg = response.errorBody()?.string()
@@ -86,6 +86,7 @@ class AuthRepository(
             Result.failure(e)
         }
     }
+
 
 
     suspend fun login(email: String, password: String): Result<LoginResponse> {
