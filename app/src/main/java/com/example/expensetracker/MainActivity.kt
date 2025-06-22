@@ -1020,6 +1020,7 @@ fun AddPhoto(
 
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
+                    // Inside your "Upload" Column -> Modifier.clickable { ... }
                     modifier = Modifier.clickable {
                         val selectedUri = profileImageUri
                         if (selectedUri != null) {
@@ -1027,9 +1028,6 @@ fun AddPhoto(
                                 val file = photoViewModel.uriToFile(selectedUri)
                                 if (file.exists()) {
                                     authViewModel.uploadProfilePhoto(file)
-
-                                    // ✅ Save uploaded image path to session
-                                    sessionManager.saveProfileImage(selectedUri.toString())
 
                                     Toast.makeText(context, "Profile uploaded!", Toast.LENGTH_SHORT).show()
                                     navController.navigate("home-screen") {
@@ -1045,6 +1043,7 @@ fun AddPhoto(
                             Toast.makeText(context, "No image selected", Toast.LENGTH_SHORT).show()
                         }
                     }
+
                 ) {
                     Icon(
                         imageVector = Icons.Default.Add,
