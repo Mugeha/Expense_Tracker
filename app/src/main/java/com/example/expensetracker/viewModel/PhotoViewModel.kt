@@ -33,6 +33,12 @@ class PhotoViewModel(
         _profileImageUri.value = uriString?.let { Uri.parse(it) }
     }
 
+    // ✅ NEW: Clear stale image from memory + prefs
+    fun clearProfileImage() {
+        _profileImageUri.value = null
+        sharedPrefs.edit().remove("profile_image_uri").apply()
+    }
+
     fun createImageUri(): Uri? {
         val resolver: ContentResolver = app.contentResolver
         val contentValues = ContentValues().apply {
@@ -76,5 +82,4 @@ class PhotoViewModel(
 
         return tempFile
     }
-
 }
