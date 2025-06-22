@@ -534,16 +534,16 @@ fun SignupScreen(
 
     LaunchedEffect(signupResult) {
         signupResult?.let { result ->
-            result.onSuccess { userResponse ->
+            result.onSuccess {
                 Toast.makeText(context, "Signup successful", Toast.LENGTH_SHORT).show()
 
-                // ✅ Save session info before navigating
+                // ✅ Save session using local state (not userResponse)
                 sessionManager.saveUserSession(
-                    token = userResponse.token,
-                    username = userResponse.username,
-                    profileImage = "" // placeholder, photo comes later
+                    token = "", // No token returned at signup yet
+                    username = username,
+                    profileImage = "" // placeholder; will be updated after photo upload
                 )
-                sessionManager.saveEmail(userResponse.email)
+                sessionManager.saveEmail(email)
 
                 signupSharedViewModel.setUsername(username)
                 signupSharedViewModel.setEmail(email)
@@ -558,7 +558,6 @@ fun SignupScreen(
             }
         }
     }
-
 
 
 
