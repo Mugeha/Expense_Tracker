@@ -49,7 +49,7 @@ fun ProfileScreen(
     val storedProfileImage = remember { sessionManager.getProfileImage() }
 
     val profileImageUri by photoViewModel.profileImageUri.observeAsState()
-    val finalProfileImage = profileImageUri ?: storedProfileImage
+    val finalProfileImage = profileImageUri ?: storedProfileImage?.let { Uri.parse(it) }
 
     var isLoggingOut by remember { mutableStateOf(false) }
     var isDarkMode by remember { mutableStateOf(false) }
@@ -57,12 +57,19 @@ fun ProfileScreen(
     val sheetState = rememberModalBottomSheetState()
     var showSheet by remember { mutableStateOf(false) }
 
+    val uploadResult = authViewModel.uploadResult.collectAsState().value
+
+    LaunchedEffect(uploadResult) {
+        uploadResult?.onSuccess { newImageUrl ->
+            sessionManager.saveProfileImage(newImageUrl)
+            photoViewModel.saveProfileImage(Uri.parse(newImageUrl))
+        }
+    }
+
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         uri?.let {
-            photoViewModel.saveProfileImage(it)
-
             try {
                 val file = photoViewModel.uriToFile(it)
                 authViewModel.uploadProfilePhoto(photoFile = file)
@@ -72,15 +79,12 @@ fun ProfileScreen(
         }
     }
 
-
     val cameraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicturePreview()
     ) { bitmap: Bitmap? ->
         bitmap?.let {
             val uri = photoViewModel.bitmapToUri(it)
             uri?.let { safeUri ->
-                photoViewModel.saveProfileImage(safeUri)
-
                 try {
                     val file = photoViewModel.uriToFile(safeUri)
                     authViewModel.uploadProfilePhoto(photoFile = file)
@@ -91,9 +95,6 @@ fun ProfileScreen(
         }
     }
 
-
-
-    // ✅ UI Layout remains unchanged
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -101,7 +102,6 @@ fun ProfileScreen(
             .padding(top = 28.dp, start = 16.dp, end = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Back Button
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
@@ -118,7 +118,6 @@ fun ProfileScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Profile Picture
         Box(
             modifier = Modifier.size(150.dp),
             contentAlignment = Alignment.Center
@@ -145,7 +144,6 @@ fun ProfileScreen(
             )
         }
 
-        // Profile Name
         Text(
             text = username ?: "Loading...",
             fontSize = 18.sp,
@@ -155,7 +153,6 @@ fun ProfileScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Profile Sections
         ProfileSection("Personal Info") {
             Spacer(modifier = Modifier.height(6.dp))
             Row(
@@ -194,7 +191,6 @@ fun ProfileScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Logout Button
         FilledButton(
             title = if (isLoggingOut) "Logging out..." else "Log out",
             enabled = !isLoggingOut,
@@ -207,7 +203,6 @@ fun ProfileScreen(
             }
         )
 
-        // Bottom Sheet for Camera & Gallery Options
         if (showSheet) {
             ModalBottomSheet(
                 onDismissRequest = { showSheet = false },
@@ -245,6 +240,7 @@ fun ProfileScreen(
         }
     }
 }
+
 
 
 
