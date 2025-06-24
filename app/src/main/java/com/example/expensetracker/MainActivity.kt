@@ -516,7 +516,10 @@ fun SignupScreen(
     val apiService = ApiService.create(sessionManager)
     val authRepository = AuthRepository(apiService, sessionManager)
     val signupSharedViewModel: SignupSharedViewModel = viewModel()
-    val photoViewModel: PhotoViewModel = viewModel(factory = PhotoViewModelFactory(context.applicationContext as Application)) // ✅ Added
+    val application = context.applicationContext as Application
+    val photoViewModel: PhotoViewModel = viewModel(
+        factory = PhotoViewModelFactory(application, context)
+    )
 
     val authViewModel: AuthViewModel = viewModel(factory = AuthViewModelFactory(authRepository))
 
@@ -926,16 +929,19 @@ fun AddPhoto(
     signupSharedViewModel: SignupSharedViewModel
 ) {
     val email = signupSharedViewModel.email
-    val bottomSheetState = rememberModalBottomSheetState()
-    var showBottomSheet by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val sessionManager = remember { SessionManager(context) }
+
+    val bottomSheetState = rememberModalBottomSheetState()
+    var showBottomSheet by remember { mutableStateOf(false) }
 
     val profileImageUri by photoViewModel.profileImageUri.observeAsState()
     var tempImageUri by remember { mutableStateOf<Uri?>(null) }
 
+    val uploadResult by authViewModel.uploadResult.collectAsState() // ✅ To get image upload response
+
     LaunchedEffect(Unit) {
-        photoViewModel.loadProfileImage()
+        photoViewModel.clearProfileImage() // ✅ Clear old image from previous user
     }
 
     val cameraPermissionState = rememberPermissionState(android.Manifest.permission.CAMERA)
@@ -949,6 +955,21 @@ fun AddPhoto(
     val pickImageLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         uri?.let {
             photoViewModel.saveProfileImage(it)
+        }
+    }
+
+    // ✅ Handle upload response to save image URL
+    LaunchedEffect(uploadResult) {
+        uploadResult?.let { result ->
+            result.onSuccess { imageUrl ->
+                sessionManager.saveProfileImage(imageUrl)
+                Toast.makeText(context, "Profile uploaded!", Toast.LENGTH_SHORT).show()
+                navController.navigate("home-screen") {
+                    popUpTo("addphoto-screen") { inclusive = true }
+                }
+            }.onFailure {
+                Toast.makeText(context, "Upload failed: ${it.message}", Toast.LENGTH_SHORT).show()
+            }
         }
     }
 
@@ -1036,7 +1057,6 @@ fun AddPhoto(
 
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    // Inside your "Upload" Column -> Modifier.clickable { ... }
                     modifier = Modifier.clickable {
                         val selectedUri = profileImageUri
                         if (selectedUri != null) {
@@ -1044,22 +1064,16 @@ fun AddPhoto(
                                 val file = photoViewModel.uriToFile(selectedUri)
                                 if (file.exists()) {
                                     authViewModel.uploadProfilePhoto(file)
-
-                                    Toast.makeText(context, "Profile uploaded!", Toast.LENGTH_SHORT).show()
-                                    navController.navigate("home-screen") {
-                                        popUpTo("addphoto-screen") { inclusive = true }
-                                    }
                                 } else {
                                     Toast.makeText(context, "Failed to convert image to file", Toast.LENGTH_SHORT).show()
                                 }
                             } catch (e: Exception) {
-                                Toast.makeText(context, "Error uploading photo: ${e.message}", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
                             }
                         } else {
                             Toast.makeText(context, "No image selected", Toast.LENGTH_SHORT).show()
                         }
                     }
-
                 ) {
                     Icon(
                         imageVector = Icons.Default.Add,
@@ -1087,18 +1101,19 @@ fun AddPhoto(
                 Spacer(modifier = Modifier.height(10.dp))
                 WhiteButtonWithStroke(
                     onClick = {
-                        photoViewModel.clearProfileImage() // ✅ Clear temp image from last user
+                        photoViewModel.clearProfileImage()
+                        sessionManager.saveProfileImage("") // ✅ Ensures default image is shown
                         navController.navigate("home-screen") {
                             popUpTo("addphoto-screen") { inclusive = true }
                         }
                     },
                     title = "Maybe Later"
                 )
-
             }
         }
     }
 }
+
 
 
 
