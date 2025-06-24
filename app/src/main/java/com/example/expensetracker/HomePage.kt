@@ -2,6 +2,7 @@ package com.example.expensetracker
 
 import PhotoViewModel
 import android.content.Context
+import android.net.Uri
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -41,18 +42,15 @@ fun HomeScreen(
 
     val sessionManager = remember { SessionManager(context) }
 
-    // ✅ Use rememberUpdatedState to observe latest values
     val username by rememberUpdatedState(newValue = sessionManager.getUsername() ?: "User")
-    val storedProfileImage = sessionManager.getProfileImage()
+    val sessionImageUri = sessionManager.getProfileImage()?.let { Uri.parse(it) }
 
-    // ✅ Observe viewmodel image (if set during this session)
-    val imageUri by photoViewModel.profileImageUri.observeAsState()
+    val viewModelImageUri by photoViewModel.profileImageUri.observeAsState()
+    val finalProfileImage = viewModelImageUri ?: sessionImageUri
 
-    // ✅ Final fallback priority: session -> viewmodel
-    val finalProfileImage = imageUri ?: storedProfileImage
-
+    // ✅ Load image from session on initial screen load
     LaunchedEffect(Unit) {
-        photoViewModel.loadProfileImage() // will use shared prefs if available
+        photoViewModel.loadProfileImage()
     }
 
     Scaffold(
@@ -67,9 +65,7 @@ fun HomeScreen(
                 .padding(16.dp)
         ) {
             // ✅ Profile Section
-            Row(
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 Image(
                     painter = finalProfileImage?.let { rememberAsyncImagePainter(it) }
                         ?: painterResource(R.drawable.human_profile),
@@ -77,9 +73,7 @@ fun HomeScreen(
                     modifier = Modifier
                         .size(40.dp)
                         .clip(CircleShape)
-                        .clickable {
-                            navController.navigate("account-page")
-                        }
+                        .clickable { navController.navigate("account-page") }
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
