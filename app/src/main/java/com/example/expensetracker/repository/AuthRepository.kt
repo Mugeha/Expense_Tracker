@@ -1,3 +1,5 @@
+package com.example.expensetracker.repository
+
 import android.util.Log
 import com.example.expensetracker.api.ApiService
 import com.example.expensetracker.data.remote.SessionManager
@@ -20,8 +22,7 @@ class AuthRepository(
     suspend fun signup(
         username: String,
         email: String,
-        password: String,
-        imageFile: File? = null // <-- Make imageFile optional
+        password: String
     ): Result<UserResponse> {
         return try {
             val usernamePart = username.toRequestBody()
@@ -32,18 +33,7 @@ class AuthRepository(
 
             if (response.isSuccessful) {
                 response.body()?.let { userResponse ->
-                    // Only try to upload image if it was provided
-                    if (imageFile != null) {
-                        val imageUploadResult = uploadProfilePhoto(imageFile)
-                        if (imageUploadResult.isFailure) {
-                            return Result.failure(imageUploadResult.exceptionOrNull() ?: Exception("Image upload failed"))
-                        }
-                        // Save returned image URL to session if available
-                        imageUploadResult.getOrNull()?.let { uploadedImageUrl ->
-                            sessionManager.saveProfileImage(uploadedImageUrl)
-                        }
-                    }
-
+                    // NOTE: token not available during signup
                     Result.success(userResponse)
                 } ?: Result.failure(Exception("Empty response from server"))
             } else {
@@ -57,19 +47,15 @@ class AuthRepository(
         }
     }
 
-
     suspend fun uploadProfilePhoto(imageFile: File): Result<String> {
         return try {
-            val token = sessionManager.getToken() ?: return Result.failure(Exception("No token found"))
-
             val imagePart = MultipartBody.Part.createFormData(
                 "profileImage",
                 imageFile.name,
                 RequestBody.create("multipart/form-data".toMediaTypeOrNull(), imageFile)
             )
 
-            // ⬇️ Pass the token with Bearer prefix manually
-            val response = apiService.uploadImage("Bearer $token", imagePart)
+            val response = apiService.uploadImage(imagePart)
 
             if (response.isSuccessful) {
                 val imageUrl = response.body()?.profileImage
@@ -89,9 +75,6 @@ class AuthRepository(
             Result.failure(e)
         }
     }
-
-
-
 
     suspend fun login(email: String, password: String): Result<LoginResponse> {
         return try {
