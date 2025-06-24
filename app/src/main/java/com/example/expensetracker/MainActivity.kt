@@ -516,14 +516,12 @@ fun SignupScreen(
     val apiService = ApiService.create(sessionManager)
     val authRepository = AuthRepository(apiService, sessionManager)
     val signupSharedViewModel: SignupSharedViewModel = viewModel()
-
+    val photoViewModel: PhotoViewModel = viewModel(factory = PhotoViewModelFactory(context.applicationContext as Application)) // ✅ Added
 
     val authViewModel: AuthViewModel = viewModel(factory = AuthViewModelFactory(authRepository))
 
-
     val signupResult by authViewModel.signupResult.collectAsState()
     val isLoading by authViewModel.isLoading.collectAsState()
-
 
     var username by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
@@ -545,11 +543,15 @@ fun SignupScreen(
             result.onSuccess {
                 Toast.makeText(context, "Signup successful", Toast.LENGTH_SHORT).show()
 
-                // ✅ Save session using local state (not userResponse)
+                // ✅ Clear previous profile image from ViewModel & session
+                photoViewModel.clearProfileImage()
+                sessionManager.saveProfileImage("") // Clear previous profile
+
+                // ✅ Save initial user session
                 sessionManager.saveUserSession(
-                    token = "", // No token returned at signup yet
+                    token = "", // Will update after login
                     username = username,
-                    profileImage = "" // placeholder; will be updated after photo upload
+                    profileImage = ""
                 )
                 sessionManager.saveEmail(email)
 
@@ -566,8 +568,6 @@ fun SignupScreen(
             }
         }
     }
-
-
 
     Box(
         modifier = Modifier
@@ -641,6 +641,7 @@ fun SignupScreen(
         }
     }
 }
+
 
 
 @Composable
