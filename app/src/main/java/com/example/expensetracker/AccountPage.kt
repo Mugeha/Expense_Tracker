@@ -49,7 +49,9 @@ fun ProfileScreen(
     val storedProfileImage = remember { sessionManager.getProfileImage() }
 
     val profileImageUri by photoViewModel.profileImageUri.observeAsState()
-    val finalProfileImage = profileImageUri ?: storedProfileImage?.let { Uri.parse(it) }
+    val finalProfileImage = remember(profileImageUri, storedProfileImage) {
+        profileImageUri ?: storedProfileImage?.takeIf { it.isNotBlank() }?.let { Uri.parse(it) }
+    }
 
     var isLoggingOut by remember { mutableStateOf(false) }
     var isDarkMode by remember { mutableStateOf(false) }
@@ -62,7 +64,14 @@ fun ProfileScreen(
     LaunchedEffect(uploadResult) {
         uploadResult?.onSuccess { newImageUrl ->
             sessionManager.saveProfileImage(newImageUrl)
-            photoViewModel.saveProfileImage(Uri.parse(newImageUrl))
+            photoViewModel.saveProfileImage(Uri.parse(newImageUrl)) // 🔁 Also update viewmodel
+        }
+    }
+
+    // 🧹 Clear any residual image if profile screen is loaded fresh
+    LaunchedEffect(Unit) {
+        if (profileImageUri == null && storedProfileImage.isNullOrEmpty()) {
+            photoViewModel.clearProfileImage()
         }
     }
 
@@ -122,15 +131,26 @@ fun ProfileScreen(
             modifier = Modifier.size(150.dp),
             contentAlignment = Alignment.Center
         ) {
-            AsyncImage(
-                model = finalProfileImage ?: R.drawable.human_profile,
-                contentDescription = "Profile Image",
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .size(150.dp)
-                    .clip(CircleShape)
-                    .clickable { navController.navigate("account-page") }
-            )
+            // ✅ If finalProfileImage is null, fallback to human_profile explicitly
+            if (finalProfileImage != null) {
+                AsyncImage(
+                    model = finalProfileImage,
+                    contentDescription = "Profile Image",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .size(150.dp)
+                        .clip(CircleShape)
+                        .clickable { navController.navigate("account-page") }
+                )
+            } else {
+                Image(
+                    painter = painterResource(id = R.drawable.human_profile),
+                    contentDescription = "Default Profile",
+                    modifier = Modifier
+                        .size(150.dp)
+                        .clip(CircleShape)
+                )
+            }
 
             Image(
                 painter = painterResource(id = R.drawable.camera_pic_removebg_preview),
@@ -139,7 +159,10 @@ fun ProfileScreen(
                     .size(48.dp)
                     .align(Alignment.BottomEnd)
                     .offset(x = (-10).dp, y = (-12).dp)
-                    .clickable { showSheet = true }
+                    .clickable {
+                        photoViewModel.clearProfileImage() // ✅ Clear cached uri before editing
+                        showSheet = true
+                    }
                     .alpha(0.9f)
             )
         }
@@ -197,6 +220,7 @@ fun ProfileScreen(
             onClick = {
                 isLoggingOut = true
                 sessionManager.clearSession()
+                photoViewModel.clearProfileImage() // ✅ Clear cache on logout
                 navController.navigate("login-screen") {
                     popUpTo("home-screen") { inclusive = true }
                 }
@@ -220,6 +244,7 @@ fun ProfileScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable {
+                                photoViewModel.clearProfileImage()
                                 cameraLauncher.launch(null)
                                 showSheet = false
                             }
@@ -230,6 +255,7 @@ fun ProfileScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable {
+                                photoViewModel.clearProfileImage()
                                 galleryLauncher.launch("image/*")
                                 showSheet = false
                             }
@@ -240,12 +266,6 @@ fun ProfileScreen(
         }
     }
 }
-
-
-
-
-
-
 
 @Composable
 fun ProfileSection(title: String, content: @Composable () -> Unit) {
