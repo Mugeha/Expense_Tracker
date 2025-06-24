@@ -369,7 +369,10 @@ fun TeaserScreen(
     context: Context
 ) {
     val sessionManager = remember { SessionManager(context) }
-    val photoViewModel: PhotoViewModel = viewModel() // Add this if you're using ViewModel-based image caching
+    val appContext = LocalContext.current.applicationContext as Application
+    val photoViewModel: PhotoViewModel = viewModel(
+        factory = PhotoViewModelFactory(appContext, context)
+    )
 
     // ✅ Auto-navigation logic with session restoration
     LaunchedEffect(Unit) {
@@ -444,7 +447,6 @@ fun TeaserScreen(
         }
     }
 }
-
 
 
 @Composable
