@@ -60,18 +60,21 @@ class AuthRepository(
 
     suspend fun uploadProfilePhoto(imageFile: File): Result<String> {
         return try {
+            val token = sessionManager.getToken() ?: return Result.failure(Exception("No token found"))
+
             val imagePart = MultipartBody.Part.createFormData(
                 "profileImage",
                 imageFile.name,
                 RequestBody.create("multipart/form-data".toMediaTypeOrNull(), imageFile)
             )
 
-            val response = apiService.uploadImage(imagePart)
+            // ⬇️ Pass the token with Bearer prefix manually
+            val response = apiService.uploadImage("Bearer $token", imagePart)
 
             if (response.isSuccessful) {
                 val imageUrl = response.body()?.profileImage
                 if (!imageUrl.isNullOrEmpty()) {
-                    sessionManager.saveProfileImage(imageUrl) // ✅ Save the image URL
+                    sessionManager.saveProfileImage(imageUrl)
                     Result.success(imageUrl)
                 } else {
                     Result.failure(Exception("Server did not return image URL"))
@@ -86,6 +89,7 @@ class AuthRepository(
             Result.failure(e)
         }
     }
+
 
 
 

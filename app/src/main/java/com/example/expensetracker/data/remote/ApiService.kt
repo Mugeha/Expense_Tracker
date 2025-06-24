@@ -3,9 +3,9 @@ package com.example.expensetracker.api
 import com.example.expensetracker.model.LoginRequest
 import com.example.expensetracker.model.LoginResponse
 import com.example.expensetracker.model.UserResponse
-import com.example.expensetracker.data.remote.SessionManager
 import com.example.expensetracker.model.ImageUploadResponse
 import com.example.expensetracker.util.Constants
+import com.example.expensetracker.data.remote.SessionManager
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
 import okhttp3.OkHttpClient
@@ -19,7 +19,6 @@ import retrofit2.http.Part
 
 interface ApiService {
 
-    // ✅ Signup (Step 1)
     @Multipart
     @POST("api/auth/signup")
     suspend fun signup(
@@ -28,14 +27,12 @@ interface ApiService {
         @Part("password") password: RequestBody
     ): Response<UserResponse>
 
-    // ✅ Upload Profile Image (Step 2)
     @Multipart
     @POST("api/auth/upload-image")
     suspend fun uploadImage(
         @Part profileImage: MultipartBody.Part
     ): Response<ImageUploadResponse>
 
-    // ✅ Login (Step 3)
     @POST("api/auth/login")
     suspend fun login(
         @Body loginRequest: LoginRequest
@@ -47,7 +44,6 @@ interface ApiService {
                 .addInterceptor { chain ->
                     val requestBuilder = chain.request().newBuilder()
 
-                    // Attach token if available
                     sessionManager.getToken()?.let { token ->
                         requestBuilder.addHeader("Authorization", "Bearer $token")
                     }
@@ -57,7 +53,7 @@ interface ApiService {
                 .build()
 
             return Retrofit.Builder()
-                .baseUrl(Constants.BASE_URL) // 👈🏽 Use Constants here now
+                .baseUrl(Constants.BASE_URL)
                 .client(client)
                 .addConverterFactory(GsonConverterFactory.create())
                 .build()
