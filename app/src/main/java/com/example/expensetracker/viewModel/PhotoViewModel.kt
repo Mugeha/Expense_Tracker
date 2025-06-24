@@ -8,6 +8,7 @@ import android.provider.MediaStore
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
+import com.example.expensetracker.data.remote.SessionManager
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
@@ -22,6 +23,7 @@ class PhotoViewModel(
     val profileImageUri: LiveData<Uri?> get() = _profileImageUri
 
     private val sharedPrefs = app.getSharedPreferences("user_prefs", Application.MODE_PRIVATE)
+    private val sessionManager = SessionManager(context)
 
     fun saveProfileImage(uri: Uri) {
         _profileImageUri.value = uri
@@ -29,11 +31,11 @@ class PhotoViewModel(
     }
 
     fun loadProfileImage() {
-        val uriString = sharedPrefs.getString("profile_image_uri", null)
-        _profileImageUri.value = uriString?.let { Uri.parse(it) }
+        val fromSession = sessionManager.getProfileImage()?.let { Uri.parse(it) }
+        val fromPrefs = sharedPrefs.getString("profile_image_uri", null)?.let { Uri.parse(it) }
+        _profileImageUri.value = fromSession ?: fromPrefs
     }
 
-    // ✅ NEW: Clear stale image from memory + prefs
     fun clearProfileImage() {
         _profileImageUri.value = null
         sharedPrefs.edit().remove("profile_image_uri").apply()
@@ -51,23 +53,20 @@ class PhotoViewModel(
     fun bitmapToUri(bitmap: Bitmap): Uri? {
         val wrapper = android.content.ContextWrapper(context)
         val file = File(wrapper.getDir("images", Context.MODE_PRIVATE), "${UUID.randomUUID()}.jpg")
-        var stream: FileOutputStream? = null
         return try {
-            stream = FileOutputStream(file)
-            bitmap.compress(Bitmap.CompressFormat.JPEG, 100, stream)
+            FileOutputStream(file).use { stream ->
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 100, stream)
+            }
             Uri.fromFile(file)
         } catch (e: IOException) {
             e.printStackTrace()
             null
-        } finally {
-            stream?.close()
         }
     }
 
     fun uriToFile(uri: Uri): File {
         val inputStream = app.contentResolver.openInputStream(uri)
             ?: throw IllegalArgumentException("Unable to open input stream for URI")
-
         val tempFile = File.createTempFile("upload_", ".jpg", app.cacheDir)
 
         inputStream.use { input ->
