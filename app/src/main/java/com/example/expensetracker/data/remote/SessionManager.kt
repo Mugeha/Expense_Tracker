@@ -22,8 +22,10 @@ class SessionManager(context: Context) {
             .putString(KEY_TOKEN, token)
             .putString(KEY_USERNAME, username)
             .putString(KEY_PROFILE_IMAGE, profileImage)
+            .putBoolean(KEY_PHOTO_STEP_DONE, false) // Reset when new session starts
             .apply()
     }
+
 
     // ✅ Save profile image separately
     fun saveProfileImage(uri: String) {
