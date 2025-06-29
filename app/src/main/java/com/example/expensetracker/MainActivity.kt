@@ -1,6 +1,6 @@
 package com.example.expensetracker
 
-import AuthRepository
+
 import PhotoViewModel
 import PhotoViewModelFactory
 import ProfileScreen
@@ -83,6 +83,7 @@ import com.example.walletapp.TransactionHistoryScreen
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.ui.window.Dialog
+import com.example.expensetracker.repository.AuthRepository
 import com.example.expensetracker.viewModel.AuthViewModel
 import com.example.expensetracker.viewModel.AuthViewModelFactory
 import com.example.expensetracker.viewModel.SignupSharedViewModel
@@ -546,23 +547,10 @@ fun SignupScreen(
             result.onSuccess {
                 Toast.makeText(context, "Signup successful", Toast.LENGTH_SHORT).show()
 
-                // ✅ Clear previous profile image from ViewModel & session
-                photoViewModel.clearProfileImage()
-                sessionManager.saveProfileImage("") // Clear previous profile
+                // ✅ Old logic removed
 
-                // ✅ Save initial user session
-                sessionManager.saveUserSession(
-                    token = "", // Will update after login
-                    username = username,
-                    profileImage = ""
-                )
-                sessionManager.saveEmail(email)
-
-                signupSharedViewModel.setUsername(username)
-                signupSharedViewModel.setEmail(email)
-                signupSharedViewModel.setPassword(password)
-
-                navController.navigate("addphoto-screen") {
+                // ✅ Navigate to login instead of AddPhoto
+                navController.navigate("login-screen") {
                     popUpTo("signup-screen") { inclusive = true }
                 }
 
@@ -571,6 +559,7 @@ fun SignupScreen(
             }
         }
     }
+
 
     Box(
         modifier = Modifier
