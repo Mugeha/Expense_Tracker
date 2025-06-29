@@ -58,4 +58,14 @@ class SessionManager(context: Context) {
 
     // ✅ Check if user is logged in
     fun isLoggedIn(): Boolean = getToken() != null
+    fun markPhotoStepDone() {
+        prefs.edit()
+            .putBoolean(KEY_PHOTO_STEP_DONE, true)
+            .apply()
+    }
+
+    fun isPhotoStepDone(): Boolean {
+        return prefs.getBoolean(KEY_PHOTO_STEP_DONE, false)
+    }
+
 }
