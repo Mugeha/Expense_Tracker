@@ -684,8 +684,10 @@ fun LoginScreen(navController: NavController, context: Context) {
                 )
                 sessionManager.saveEmail(response.email)
 
-                // ✅ Navigate based on whether profile image exists
-                if (response.profileImage.isNullOrBlank()) {
+                val isFirstLogin = !sessionManager.isPhotoStepDone()
+
+                if (isFirstLogin) {
+                    sessionManager.markPhotoStepDone() // ✅ Prevent it from ever showing again
                     navController.navigate("addphoto-screen") {
                         popUpTo("login-screen") { inclusive = true }
                     }
@@ -694,6 +696,7 @@ fun LoginScreen(navController: NavController, context: Context) {
                         popUpTo("login-screen") { inclusive = true }
                     }
                 }
+
 
             }.onFailure { error ->
                 Toast.makeText(context, error.message ?: "Login failed", Toast.LENGTH_SHORT).show()
