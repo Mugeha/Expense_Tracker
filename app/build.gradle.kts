@@ -71,10 +71,12 @@ dependencies {
     implementation(libs.androidx.navigation.runtime.ktx)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.retrofit)
+
     implementation( libs.converter.gson)
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
     implementation(libs.androidx.runtime.livedata)
     implementation(libs.androidx.media3.common.ktx)
+    implementation("id.zelory:compressor:3.0.1")
     testImplementation(libs.junit)
     implementation(libs.androidx.ui.text.google.fonts)
     androidTestImplementation(libs.androidx.junit)

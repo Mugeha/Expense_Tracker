@@ -9,6 +9,7 @@ import android.content.Context
 import android.content.res.Configuration
 import android.net.Uri
 import android.os.Bundle
+import id.zelory.compressor.Compressor
 import android.util.Patterns
 import android.widget.Toast
 import coil.compose.rememberAsyncImagePainter
@@ -89,8 +90,11 @@ import com.example.expensetracker.viewModel.AuthViewModelFactory
 import com.example.expensetracker.viewModel.SignupSharedViewModel
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
-
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 
 class MainActivity : ComponentActivity() {
@@ -938,10 +942,10 @@ fun AddPhoto(
     val profileImageUri by photoViewModel.profileImageUri.observeAsState()
     var tempImageUri by remember { mutableStateOf<Uri?>(null) }
 
-    val uploadResult by authViewModel.uploadResult.collectAsState() // ✅ To get image upload response
+    val uploadResult by authViewModel.uploadResult.collectAsState()
 
     LaunchedEffect(Unit) {
-        photoViewModel.clearProfileImage() // ✅ Clear old image from previous user
+        photoViewModel.clearProfileImage()
     }
 
     val cameraPermissionState = rememberPermissionState(android.Manifest.permission.CAMERA)
@@ -962,7 +966,7 @@ fun AddPhoto(
         uploadResult?.let { result ->
             result.onSuccess { imageUrl ->
                 sessionManager.saveProfileImage(imageUrl)
-                sessionManager.markPhotoStepDone() // ✅ Mark step as done
+                sessionManager.markPhotoStepDone()
                 Toast.makeText(context, "Profile uploaded!", Toast.LENGTH_SHORT).show()
                 navController.navigate("home-screen") {
                     popUpTo("addphoto-screen") { inclusive = true }
@@ -972,7 +976,6 @@ fun AddPhoto(
             }
         }
     }
-
 
     if (showBottomSheet) {
         ModalBottomSheet(
@@ -1017,7 +1020,7 @@ fun AddPhoto(
         topBar = {
             IconButton(
                 onClick = { navController.popBackStack() },
-                modifier = Modifier.padding(top = 46.dp, start = 16.dp),
+                modifier = Modifier.padding(top = 46.dp, start = 16.dp)
             ) {
                 Icon(
                     painter = painterResource(R.drawable.back_button),
@@ -1040,7 +1043,7 @@ fun AddPhoto(
             ) {
                 Text(
                     text = "Add a photo",
-                    style = MaterialTheme.typography.headlineLarge.copy(color = Color.Black),
+                    style = MaterialTheme.typography.headlineLarge.copy(color = Color.Black)
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -1061,20 +1064,30 @@ fun AddPhoto(
                     modifier = Modifier.clickable {
                         val selectedUri = profileImageUri
                         if (selectedUri != null) {
-                            try {
-                                val file = photoViewModel.uriToFile(selectedUri)
-                                if (file.exists()) {
-                                    authViewModel.uploadProfilePhoto(file)
-                                } else {
-                                    Toast.makeText(context, "Failed to convert image to file", Toast.LENGTH_SHORT).show()
+                            CoroutineScope(Dispatchers.IO).launch {
+                                try {
+                                    val file = photoViewModel.uriToFile(selectedUri)
+                                    if (file.exists()) {
+                                        val compressedFile = Compressor.compress(context, file)
+                                        withContext(Dispatchers.Main) {
+                                            authViewModel.uploadProfilePhoto(compressedFile)
+                                        }
+                                    } else {
+                                        withContext(Dispatchers.Main) {
+                                            Toast.makeText(context, "Failed to convert image to file", Toast.LENGTH_SHORT).show()
+                                        }
+                                    }
+                                } catch (e: Exception) {
+                                    withContext(Dispatchers.Main) {
+                                        Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                                    }
                                 }
-                            } catch (e: Exception) {
-                                Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
                             }
                         } else {
                             Toast.makeText(context, "No image selected", Toast.LENGTH_SHORT).show()
                         }
                     }
+
                 ) {
                     Icon(
                         imageVector = Icons.Default.Add,
@@ -1103,19 +1116,19 @@ fun AddPhoto(
                 WhiteButtonWithStroke(
                     onClick = {
                         photoViewModel.clearProfileImage()
-                        sessionManager.saveProfileImage("") // ✅ Save blank
-                        sessionManager.markPhotoStepDone()  // ✅ Mark as done
+                        sessionManager.saveProfileImage("")
+                        sessionManager.markPhotoStepDone()
                         navController.navigate("home-screen") {
                             popUpTo("addphoto-screen") { inclusive = true }
                         }
                     },
                     title = "Maybe Later"
                 )
-
             }
         }
     }
 }
+
 
 
 
