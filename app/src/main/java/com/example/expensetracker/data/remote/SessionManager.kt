@@ -12,6 +12,7 @@ class SessionManager(context: Context) {
         private const val KEY_USERNAME = "user_name"
         private const val KEY_PROFILE_IMAGE = "profile_image"
         private const val KEY_EMAIL = "user_email" // 👈🏽 new
+        private const val KEY_PHOTO_STEP_DONE = "photo_step_done"
 
     }
 
