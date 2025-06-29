@@ -958,11 +958,11 @@ fun AddPhoto(
         }
     }
 
-    // ✅ Handle upload response to save image URL
     LaunchedEffect(uploadResult) {
         uploadResult?.let { result ->
             result.onSuccess { imageUrl ->
                 sessionManager.saveProfileImage(imageUrl)
+                sessionManager.markPhotoStepDone() // ✅ Mark step as done
                 Toast.makeText(context, "Profile uploaded!", Toast.LENGTH_SHORT).show()
                 navController.navigate("home-screen") {
                     popUpTo("addphoto-screen") { inclusive = true }
@@ -972,6 +972,7 @@ fun AddPhoto(
             }
         }
     }
+
 
     if (showBottomSheet) {
         ModalBottomSheet(
@@ -1102,13 +1103,15 @@ fun AddPhoto(
                 WhiteButtonWithStroke(
                     onClick = {
                         photoViewModel.clearProfileImage()
-                        sessionManager.saveProfileImage("") // ✅ Ensures default image is shown
+                        sessionManager.saveProfileImage("") // ✅ Save blank
+                        sessionManager.markPhotoStepDone()  // ✅ Mark as done
                         navController.navigate("home-screen") {
                             popUpTo("addphoto-screen") { inclusive = true }
                         }
                     },
                     title = "Maybe Later"
                 )
+
             }
         }
     }
