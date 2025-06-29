@@ -676,7 +676,7 @@ fun LoginScreen(navController: NavController, context: Context) {
     LaunchedEffect(loginResult) {
         loginResult?.let { result ->
             result.onSuccess { response ->
-                // ✅ Save everything to session
+                // ✅ Save session
                 sessionManager.saveUserSession(
                     token = response.token,
                     username = response.username,
@@ -684,15 +684,23 @@ fun LoginScreen(navController: NavController, context: Context) {
                 )
                 sessionManager.saveEmail(response.email)
 
-                // ✅ Navigate to home screen
-                navController.navigate("home-screen") {
-                    popUpTo("login-screen") { inclusive = true }
+                // ✅ Navigate based on whether profile image exists
+                if (response.profileImage.isNullOrBlank()) {
+                    navController.navigate("addphoto-screen") {
+                        popUpTo("login-screen") { inclusive = true }
+                    }
+                } else {
+                    navController.navigate("home-screen") {
+                        popUpTo("login-screen") { inclusive = true }
+                    }
                 }
+
             }.onFailure { error ->
                 Toast.makeText(context, error.message ?: "Login failed", Toast.LENGTH_SHORT).show()
             }
         }
     }
+
 
 
 
