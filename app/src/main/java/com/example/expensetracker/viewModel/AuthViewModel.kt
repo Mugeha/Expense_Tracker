@@ -1,11 +1,11 @@
 package com.example.expensetracker.viewModel
 
-import AuthRepository
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.expensetracker.data.remote.SessionManager
 import com.example.expensetracker.model.LoginResponse
+import com.example.expensetracker.repository.AuthRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -37,7 +37,7 @@ class AuthViewModel(
     fun signup(name: String, email: String, password: String, imageFile: File? = null) {
         viewModelScope.launch {
             _isLoading.value = true
-            val result = authRepository.signup(name, email, password, imageFile)
+            val result = authRepository.signup(name, email, password)
             _signupResult.value = result.map { Unit }
             _isLoading.value = false
         }
