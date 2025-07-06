@@ -63,6 +63,7 @@ fun ProfileScreen(
 
     LaunchedEffect(uploadResult) {
         uploadResult?.onSuccess { newImageUrl ->
+            Log.d("ProfileScreen", "New profile image uploaded: $newImageUrl")
             sessionManager.saveProfileImage(newImageUrl)
             photoViewModel.saveProfileImage(Uri.parse(newImageUrl)) // 🔁 Also update viewmodel
         }
