@@ -194,13 +194,6 @@ fun MyAppNavigation() {
             )
         }
 
-
-
-
-
-
-
-
         composable("reset-pwd")
         {
             ResetPassword(navController)
@@ -707,9 +700,6 @@ fun LoginScreen(navController: NavController, context: Context) {
             }
         }
     }
-
-
-
 
 
     val image = painterResource(R.drawable.waving_hand)

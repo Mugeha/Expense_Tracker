@@ -58,17 +58,19 @@ class AuthRepository(
             val response = apiService.uploadImage(imagePart)
 
             if (response.isSuccessful) {
-                val imageUrl = response.body()?.profileImage
-                if (!imageUrl.isNullOrEmpty()) {
-                    sessionManager.saveProfileImage(imageUrl)
-                    Result.success(imageUrl)
+                val body = response.body()
+                val profileImage = body?.profileImage
+
+                return if (!profileImage.isNullOrEmpty()) {
+                    sessionManager.saveProfileImage(profileImage)
+                    Result.success(profileImage)
                 } else {
                     Result.failure(Exception("Server did not return image URL"))
                 }
             } else {
                 val errorMsg = response.errorBody()?.string()
                 Log.e("AuthRepository", "Image upload error: ${response.code()} - $errorMsg")
-                Result.failure(Exception("Image upload failed: ${response.message()}"))
+                Result.failure(Exception("Image upload failed: $errorMsg"))
             }
         } catch (e: Exception) {
             Log.e("AuthRepository", "Exception during image upload: ${e.message}")
