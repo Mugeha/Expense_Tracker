@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import com.android.volley.toolbox.ImageRequest
 import com.example.expensetracker.FilledButton
 import com.example.expensetracker.R
 import com.example.expensetracker.api.ApiService
@@ -137,14 +138,21 @@ fun ProfileScreen(
 
             if (finalProfileImage != null) {
                 AsyncImage(
-                    model = finalProfileImage,
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(finalProfileImage)
+                        .crossfade(true)
+                        .build(),
+                    placeholder = painterResource(id = R.drawable.human_profile),
+                    error = painterResource(id = R.drawable.human_profile), // fallback on failure
                     contentDescription = "Profile Image",
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
                         .size(150.dp)
                         .clip(CircleShape)
                         .clickable { navController.navigate("account-page") }
+
                 )
+
             } else {
                 Image(
                     painter = painterResource(id = R.drawable.human_profile),

@@ -3,6 +3,7 @@ package com.example.expensetracker
 import PhotoViewModel
 import android.content.Context
 import android.net.Uri
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -18,6 +19,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -25,7 +28,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import coil.compose.AsyncImage
 import coil.compose.rememberAsyncImagePainter
+import coil.request.ImageRequest
 import com.example.expensetracker.data.remote.SessionManager
 
 
@@ -66,15 +71,23 @@ fun HomeScreen(
         ) {
             // ✅ Profile Section
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Image(
-                    painter = finalProfileImage?.let { rememberAsyncImagePainter(it) }
-                        ?: painterResource(R.drawable.human_profile),
+                Log.d("PROFILE_IMAGE_HOME", "Profile image URI: $finalProfileImage")
+
+                AsyncImage(
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(finalProfileImage)
+                        .crossfade(true)
+                        .build(),
+                    placeholder = painterResource(R.drawable.human_profile),
+                    error = painterResource(R.drawable.human_profile),
                     contentDescription = "Profile Picture",
+                    contentScale = ContentScale.Crop,
                     modifier = Modifier
                         .size(40.dp)
                         .clip(CircleShape)
                         .clickable { navController.navigate("account-page") }
                 )
+
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = "Welcome, \n$username",

@@ -77,6 +77,7 @@ dependencies {
     implementation(libs.androidx.runtime.livedata)
     implementation(libs.androidx.media3.common.ktx)
     implementation("id.zelory:compressor:3.0.1")
+    implementation(libs.volley)
     testImplementation(libs.junit)
     implementation(libs.androidx.ui.text.google.fonts)
     androidTestImplementation(libs.androidx.junit)
