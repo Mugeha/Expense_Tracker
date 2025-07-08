@@ -26,8 +26,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import coil.request.ImageRequest
 import coil.compose.AsyncImage
-import com.android.volley.toolbox.ImageRequest
 import com.example.expensetracker.FilledButton
 import com.example.expensetracker.R
 import com.example.expensetracker.api.ApiService
