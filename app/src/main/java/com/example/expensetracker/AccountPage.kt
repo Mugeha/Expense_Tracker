@@ -133,6 +133,8 @@ fun ProfileScreen(
             contentAlignment = Alignment.Center
         ) {
             // ✅ If finalProfileImage is null, fallback to human_profile explicitly
+            Log.d("IMAGE_URL", "Displaying image from: $finalProfileImage")
+
             if (finalProfileImage != null) {
                 AsyncImage(
                     model = finalProfileImage,
